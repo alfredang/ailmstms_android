@@ -1,0 +1,50 @@
+[
+  {
+    "path": ".skills/claude/android-feedback-about/SKILL.md",
+    "sha256": "a8a9a1527db3bdb3acd3e664a5853c53d7a75b754881e5443caa50fb65b3888d"
+  },
+  {
+    "path": ".skills/claude/android-app-submission/SKILL.md",
+    "sha256": "23d57c0b83fe8712a98a4f58e3d2ef29172d0045d34421e3a2a3d57775ebc2d6"
+  },
+  {
+    "path": ".skills/claude/android-auto-release/SKILL.md",
+    "sha256": "7c1276b77459653f39dac90a920d267b5aa5c43daee93576b6790171eea86736"
+  },
+  {
+    "path": ".skills/claude/mobile-android-design/SKILL.md",
+    "sha256": "0a209a1c45585ce0056548cc2f0fd352b7fde5980a3b5dd397a9daf5dff19fe7"
+  },
+  {
+    "path": ".skills/codex/android-feedback-about/SKILL.md",
+    "sha256": "a8a9a1527db3bdb3acd3e664a5853c53d7a75b754881e5443caa50fb65b3888d"
+  },
+  {
+    "path": ".skills/codex/android-app-submission/SKILL.md",
+    "sha256": "bde56c3e3a597e41d6963e2660ab575e4d22506560778793ca2aa03579d28619"
+  },
+  {
+    "path": ".skills/codex/android-auto-release/SKILL.md",
+    "sha256": "7c1276b77459653f39dac90a920d267b5aa5c43daee93576b6790171eea86736"
+  },
+  {
+    "path": ".skills/codex/mobile-android-design/SKILL.md",
+    "sha256": "0a209a1c45585ce0056548cc2f0fd352b7fde5980a3b5dd397a9daf5dff19fe7"
+  },
+  {
+    "path": ".skills/user/android-feedback-about/SKILL.md",
+    "sha256": "a8a9a1527db3bdb3acd3e664a5853c53d7a75b754881e5443caa50fb65b3888d"
+  },
+  {
+    "path": ".skills/user/android-app-submission/SKILL.md",
+    "sha256": "23d57c0b83fe8712a98a4f58e3d2ef29172d0045d34421e3a2a3d57775ebc2d6"
+  },
+  {
+    "path": ".skills/user/android-auto-release/SKILL.md",
+    "sha256": "7c1276b77459653f39dac90a920d267b5aa5c43daee93576b6790171eea86736"
+  },
+  {
+    "path": ".skills/user/mobile-android-design/SKILL.md",
+    "sha256": "0a209a1c45585ce0056548cc2f0fd352b7fde5980a3b5dd397a9daf5dff19fe7"
+  }
+]

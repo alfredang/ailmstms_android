@@ -1,0 +1,20 @@
+{
+  "package": "com.tertiaryinfotech.ailmstms",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "artifacts": [
+    {
+      "path": "app/build/outputs/bundle/release/app-release.aab",
+      "size": 8325324,
+      "sha256": "4c952fef061bf80817889ea647860a5d7bddd03d13274c1b0c9f79fbed7c98e3"
+    },
+    {
+      "path": "app/build/outputs/apk/release/app-release.apk",
+      "size": 8730234,
+      "sha256": "ef143cd09c31b7a29c42214668ae983a6f45ce74a12fc0080e890a36afbed7a6"
+    }
+  ],
+  "signatures": "AAB jarsigner verified; APK apksigner verified",
+  "signerSha256": "b33f68009fdf1a3949f4d698c650f591efb0e919ea5e24ea1afa850191f78d36",
+  "native64bitLoadAlignment": 16384
+}

@@ -1,0 +1,46 @@
+{
+  "base": "https://lms-tms.tertiaryinfotech.com",
+  "backendCommit": "8d2ab4e17a1263ecc2ba276b8253237e8c777886",
+  "results": [
+    {
+      "path": "/api/android/dashboard",
+      "status": 401,
+      "sha256": "69ea6bf143a621ec503c52d5ef52539127035a63be8967be730d5a1f7afed730"
+    },
+    {
+      "path": "/api/android/login",
+      "status": 400,
+      "sha256": "15d3b04651a723e23f92b28c39b33858a8826ca4031f1d8078506adb1a705c78"
+    },
+    {
+      "path": "/mobile/privacy.html",
+      "status": 200,
+      "sha256": "c5762c42e7d88043cd8bf72c34429b69cbaa6f532261200bee2a5dd0f0cfbf28"
+    },
+    {
+      "path": "/mobile/support.html",
+      "status": 200,
+      "sha256": "e637bbb4d62e044011d207b73c8a8d0944e3bf2d188d81e7540fcabd9c8739c7"
+    },
+    {
+      "path": "/mobile/sample-guide.html",
+      "status": 200,
+      "sha256": "48a2622be4b4c20b7b1b6ebedbbc946f34eb1d8166175bd9ff452af67ba5161c"
+    },
+    {
+      "path": "/mobile/sample-slides.html",
+      "status": 200,
+      "sha256": "75f791e5c426234918a2aa0655054db66ab71247b4ab73fff2b20a57bb83c86a"
+    },
+    {
+      "path": "/mobile/sample-activity.html",
+      "status": 200,
+      "sha256": "53eccb50ca2fb0a9fbdf2122024351c701414984592377babc80e754a363de89"
+    },
+    {
+      "path": "/mobile/sample-trainer.html",
+      "status": 200,
+      "sha256": "d7646cc774aca2e3288511f9a061afa7fe00c1e2448958342e4d30f82ff24caf"
+    }
+  ]
+}
