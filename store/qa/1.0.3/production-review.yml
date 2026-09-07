@@ -1,0 +1,191 @@
+- generic [active] [ref=f44e1]:
+  - generic:
+    - generic:
+      - progressbar [aria-hidden]
+      - generic: Loading Google Play Console
+  - generic [ref=f44e3]:
+    - banner [ref=f44e4]:
+      - generic [ref=f44e6]:
+        - link [ref=f44e7] [cursor=pointer]:
+          - /url: /console/u/0/developers/6132721113732535566/app-list
+          - button "Google Play Console logo" [ref=f44e8]
+        - generic [ref=f44e9]:
+          - button "Unread notifications Open notification center" [ref=f44e181]:
+            - img [aria-hidden] [ref=f44e19]: notifications_unread
+            - generic [ref=f44e20]: Unread notifications
+          - generic [ref=f44e22]:
+            - button "TIA LMS" [ref=f44e30] [cursor=pointer]
+            - button [ref=f44e45] [cursor=pointer]:
+              - img "Switch developer accounts" [ref=f44e47]
+    - navigation [ref=f44e53]:
+      - link "All apps" [ref=f44e54] [cursor=pointer]:
+        - /url: /console/u/0/developers/6132721113732535566/app-list
+        - img [aria-hidden] [ref=f44e56]: keyboard_backspace
+      - list [ref=f44e58]:
+        - listitem "Dashboard" [ref=f44e61]:
+          - button "Dashboard" [ref=f44e62] [cursor=pointer]:
+            - img [aria-hidden] [ref=f44e65]: dashboard
+        - listitem "Statistics" [ref=f44e69]:
+          - button "Statistics" [ref=f44e70] [cursor=pointer]:
+            - img [aria-hidden] [ref=f44e73]: bar_chart
+        - listitem "Publishing overview" [ref=f44e77]:
+          - button "Publishing overview" [ref=f44e78] [cursor=pointer]:
+            - img [aria-hidden] [ref=f44e81]: overview
+        - listitem "Protected with Play" [ref=f44e85]:
+          - button "Protected with Play" [ref=f44e86] [cursor=pointer]:
+            - img [aria-hidden] [ref=f44e89]: shield
+        - listitem "Test and release" [ref=f44e93]:
+          - button "Test and release" [ref=f44e94] [cursor=pointer]:
+            - img [aria-hidden] [ref=f44e97]: rocket_launch
+        - listitem "Monitor and improve" [ref=f44e130]:
+          - button "Monitor and improve" [ref=f44e131] [cursor=pointer]:
+            - img [aria-hidden] [ref=f44e134]: vital_signs
+        - listitem "Grow users" [ref=f44e138]:
+          - button "Grow users" [ref=f44e139] [cursor=pointer]:
+            - img [aria-hidden] [ref=f44e142]: finance_mode
+        - listitem "Monetize with Play" [ref=f44e146]:
+          - button "Monetize with Play" [ref=f44e147] [cursor=pointer]:
+            - img [aria-hidden] [ref=f44e150]: sell
+    - generic [ref=f44e153]:
+      - generic [ref=f44e732]:
+        - generic [ref=f44e1688]:
+          - heading "Publishing overview" [level=1] [ref=f44e1694]
+          - generic [ref=f44e1699]:
+            - text: See an overview of the changes made to your app, and control when changes are sent for review or published.
+            - button "Show more details about Publishing overview" [ref=f44e1700] [cursor=pointer]: Show more
+        - generic [ref=f44e1705]:
+          - button "Managed publishing off" [ref=f44e1710] [cursor=pointer]:
+            - generic [ref=f44e1711]:
+              - img [aria-hidden] [ref=f44e1715]: sync_disabled
+              - generic [ref=f44e1716]: Managed publishing off
+            - img [aria-hidden] [ref=f44e1718]: arrow_drop_down
+          - generic [ref=f44e1719]:
+            - generic [ref=f44e1720]:
+              - img [aria-hidden] [ref=f44e1723]: history
+              - generic [ref=f44e1724]: Last published on September 7, 2026
+            - link "Submission activity" [ref=f44e1726] [cursor=pointer]:
+              - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/publishing/submission-activity
+              - img [aria-hidden] [ref=f44e1731]: arrow_right_alt
+        - generic [ref=f44e1734]:
+          - generic [ref=f44e1738]:
+            - generic [ref=f44e1739]:
+              - heading "Changes not yet submitted for review" [level=2] [ref=f44e1743]
+              - button "More information about \"Changes not yet submitted for review\"" [ref=f44e1746] [cursor=pointer]:
+                - img [aria-hidden] [ref=f44e1747]: help
+            - generic [ref=f44e1749]:
+              - button "Submit 1 change for review" [disabled] [ref=f44e1753]
+              - 'button "Hide content: Changes not yet submitted for review" [expanded] [ref=f44e1757]':
+                - generic [ref=f44e1760]: Hide
+                - img [aria-hidden] [ref=f44e1762]: expand_less
+          - grid "Changes" [ref=f44e1788]:
+            - row [ref=f44e1789]:
+              - columnheader "Item changed" [ref=f44e1790]
+              - columnheader "Description" [ref=f44e1792]
+              - cell [ref=f44e1794]
+            - row [ref=f44e1796]:
+              - img [aria-hidden] [ref=f44e1799]: slow_motion_video
+              - gridcell "Closed testing - Alpha" [ref=f44e1800]
+              - button "button" [ref=f44e1803]:
+                - generic "button" [ref=f44e1804]: Save for later
+            - row [ref=f44e1807]:
+              - gridcell "1.0.3 (4)" [ref=f44e1808]
+              - gridcell "Start full rollout" [ref=f44e1813]
+              - gridcell [ref=f44e1818]:
+                - listbox "More actions" [ref=f44e1821]:
+                  - button "More actions" [ref=f44e1824] [cursor=pointer]:
+                    - img [aria-hidden] [ref=f44e1827]: more_vert
+        - generic [ref=f44e1830]:
+          - generic [ref=f44e1834]:
+            - generic [ref=f44e1835]:
+              - heading "Changes in review" [level=2] [ref=f44e1839]
+              - button "More information about \"Changes in review\"" [ref=f44e1842] [cursor=pointer]:
+                - img [aria-hidden] [ref=f44e1843]: help
+            - generic [ref=f44e1845]:
+              - button "Remove changes" [ref=f44e1848]
+              - 'button "Hide content: Changes in review" [expanded] [ref=f44e1851]':
+                - generic [ref=f44e1854]: Hide
+                - img [aria-hidden] [ref=f44e1856]: expand_less
+          - grid "Changes" [ref=f44e1882]:
+            - row [ref=f44e1883]:
+              - columnheader "Item changed" [ref=f44e1884]
+              - columnheader "Description" [ref=f44e1885]
+              - cell [ref=f44e1886]
+              - cell [ref=f44e1887]
+            - row [ref=f44e1888]:
+              - img [aria-hidden] [ref=f44e1891]: rocket_launch
+              - gridcell "Production" [ref=f44e1892]
+            - row [ref=f44e1893]:
+              - gridcell "1.0.3 (4)" [ref=f44e1894]
+              - gridcell "Start full rollout" [ref=f44e1899]
+              - gridcell [ref=f44e1904]
+              - gridcell [ref=f44e1905]:
+                - listbox "More actions" [ref=f44e1908]:
+                  - button "More actions" [ref=f44e1911] [cursor=pointer]:
+                    - img [aria-hidden] [ref=f44e1914]: more_vert
+            - row [ref=f44e1915]:
+              - gridcell "Expand row Countries / regions" [ref=f44e1916]:
+                - button "Expand row" [ref=f44e1918] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f44e1921]: arrow_right
+                - generic [ref=f44e1922]: Countries / regions
+              - 'gridcell "Add 1 country / region: Singapore" [ref=f44e1926]'
+              - gridcell "Affects other tracks" [ref=f44e1931]
+              - gridcell [ref=f44e1939]:
+                - listbox "More actions" [ref=f44e1942]:
+                  - button "More actions" [ref=f44e1945] [cursor=pointer]:
+                    - img [aria-hidden] [ref=f44e1948]: more_vert
+            - row [ref=f44e1949]:
+              - img [aria-hidden] [ref=f44e1952]: play_prism
+              - gridcell "Store listings" [ref=f44e1953]
+            - row [ref=f44e1954]:
+              - gridcell "English (United States) – en-US Default store listing" [ref=f44e1955]:
+                - generic [ref=f44e1957]:
+                  - generic [ref=f44e1958]: English (United States) – en-US
+                  - generic [ref=f44e1960]: Default store listing
+              - gridcell "Change app name to 'TIA LMS'" [ref=f44e1961]
+              - gridcell [ref=f44e1966]
+              - gridcell [ref=f44e1967]:
+                - listbox "More actions" [ref=f44e1970]:
+                  - button "More actions" [ref=f44e1973] [cursor=pointer]:
+                    - img [aria-hidden] [ref=f44e1976]: more_vert
+            - row [ref=f44e1977]:
+              - gridcell "English (United States) – en-US Default store listing" [ref=f44e1978]:
+                - generic [ref=f44e1980]:
+                  - generic [ref=f44e1981]: English (United States) – en-US
+                  - generic [ref=f44e1983]: Default store listing
+              - gridcell "Change full description" [ref=f44e1984]
+              - gridcell [ref=f44e1989]
+              - gridcell [ref=f44e1990]:
+                - listbox "More actions" [ref=f44e1993]:
+                  - button "More actions" [ref=f44e1996] [cursor=pointer]:
+                    - img [aria-hidden] [ref=f44e1999]: more_vert
+            - row [ref=f44e2000]:
+              - gridcell "English (United States) – en-US Default store listing" [ref=f44e2001]:
+                - generic [ref=f44e2003]:
+                  - generic [ref=f44e2004]: English (United States) – en-US
+                  - generic [ref=f44e2006]: Default store listing
+              - gridcell "Change app icon" [ref=f44e2007]
+              - gridcell [ref=f44e2012]
+              - gridcell [ref=f44e2013]:
+                - listbox "More actions" [ref=f44e2016]:
+                  - button "More actions" [ref=f44e2019] [cursor=pointer]:
+                    - img [aria-hidden] [ref=f44e2022]: more_vert
+      - generic [ref=f44e171]:
+        - generic [ref=f44e1068]:
+          - link "Product updates" [ref=f44e1069] [cursor=pointer]:
+            - /url: https://play.google.com/console/about/whats-new/
+          - link "Status dashboard" [ref=f44e1070] [cursor=pointer]:
+            - /url: https://status.play.google.com/
+          - link "Help" [ref=f44e1071] [cursor=pointer]:
+            - /url: /console/u/0/developers/6132721113732535566/help-and-support?app=4976046230893494126
+        - generic [ref=f44e1072]:
+          - generic [ref=f44e1073]: © 2026 Google
+          - link "Privacy" [ref=f44e1074] [cursor=pointer]:
+            - /url: https://www.google.com/policies/privacy/
+          - link "Developer Distribution Agreement" [ref=f44e1075] [cursor=pointer]:
+            - /url: https://play.google.com/about/developer-distribution-agreement.html
+          - link "Terms of Service" [ref=f44e1076] [cursor=pointer]:
+            - /url: https://play.google.com/about/console/terms-of-service/
+  - status [ref=f44e1448]:
+    - generic [ref=f44e2024]:
+      - generic [ref=f44e2025]: 5 changes sent for review
+      - generic [aria-hidden] [ref=f44e2026]: 5 changes sent for review

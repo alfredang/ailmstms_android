@@ -1,0 +1,317 @@
+- generic [active] [ref=f47e1]:
+  - generic:
+    - generic:
+      - progressbar [aria-hidden]
+      - generic: Loading Google Play Console
+  - generic [ref=f47e3]:
+    - banner [ref=f47e4]:
+      - generic [ref=f47e6]:
+        - link [ref=f47e7] [cursor=pointer]:
+          - /url: /console/u/0/developers/6132721113732535566/app-list
+          - button "Google Play Console logo" [ref=f47e8]
+        - generic [ref=f47e9]:
+          - button "Unread notifications Open notification center" [ref=f47e271]:
+            - img [aria-hidden] [ref=f47e19]: notifications_unread
+            - generic [ref=f47e20]: Unread notifications
+          - generic [ref=f47e22]:
+            - button "TIA LMS" [ref=f47e30] [cursor=pointer]
+            - button [ref=f47e45] [cursor=pointer]:
+              - img "Switch developer accounts" [ref=f47e47]
+    - navigation [ref=f47e53]:
+      - link "All apps" [ref=f47e54] [cursor=pointer]:
+        - /url: /console/u/0/developers/6132721113732535566/app-list
+        - img [aria-hidden] [ref=f47e56]: keyboard_backspace
+      - list [ref=f47e58]:
+        - listitem "Dashboard" [ref=f47e61]:
+          - button "Dashboard" [ref=f47e62] [cursor=pointer]:
+            - img [aria-hidden] [ref=f47e65]: dashboard
+        - listitem "Statistics" [ref=f47e69]:
+          - button "Statistics" [ref=f47e70] [cursor=pointer]:
+            - img [aria-hidden] [ref=f47e73]: bar_chart
+        - listitem "Publishing overview" [ref=f47e77]:
+          - button "Publishing overview" [ref=f47e78] [cursor=pointer]:
+            - img [aria-hidden] [ref=f47e81]: overview
+        - listitem "Protected with Play" [ref=f47e85]:
+          - button "Protected with Play" [ref=f47e86] [cursor=pointer]:
+            - img [aria-hidden] [ref=f47e89]: shield
+        - listitem "Test and release" [ref=f47e93]:
+          - button "Test and release" [ref=f47e94] [cursor=pointer]:
+            - img [aria-hidden] [ref=f47e97]: rocket_launch
+          - list [ref=f47e99]:
+            - generic [ref=f47e101]:
+              - listitem "Latest releases and bundles" [ref=f47e103]:
+                - button "Latest releases and bundles" [ref=f47e104] [cursor=pointer]
+              - listitem "Production" [ref=f47e107]:
+                - button "Production" [ref=f47e108] [cursor=pointer]
+              - listitem "Testing" [ref=f47e111]:
+                - button "Testing" [ref=f47e112] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e115]: expand_more
+              - listitem "Pre-registration" [ref=f47e117]:
+                - button "Pre-registration" [ref=f47e118] [cursor=pointer]
+              - listitem "App integrity" [ref=f47e121]:
+                - button "App integrity" [ref=f47e122] [cursor=pointer]
+              - listitem "Advanced settings" [ref=f47e125]:
+                - button "Advanced settings" [ref=f47e126] [cursor=pointer]
+        - listitem "Monitor and improve" [ref=f47e130]:
+          - button "Monitor and improve" [ref=f47e131] [cursor=pointer]:
+            - img [aria-hidden] [ref=f47e134]: vital_signs
+        - listitem "Grow users" [ref=f47e138]:
+          - button "Grow users" [ref=f47e139] [cursor=pointer]:
+            - img [aria-hidden] [ref=f47e142]: finance_mode
+        - listitem "Monetize with Play" [ref=f47e146]:
+          - button "Monetize with Play" [ref=f47e147] [cursor=pointer]:
+            - img [aria-hidden] [ref=f47e150]: sell
+    - generic [ref=f47e153]:
+      - generic [ref=f47e160]:
+        - generic [ref=f47e168]:
+          - generic [ref=f47e169]:
+            - heading "Production" [level=1] [ref=f47e174]
+            - generic [ref=f47e178]:
+              - button "Select form factors. Phones, Tablets, Chrome OS, Android XR" [ref=f47e183] [cursor=pointer]:
+                - generic [ref=f47e184]:
+                  - img [aria-hidden] [ref=f47e188]: phonelink
+                  - generic [ref=f47e189]: Phones, Tablets, Chrome OS, Android XR
+                - img [aria-hidden] [ref=f47e191]: arrow_drop_down
+              - button "Create new release" [ref=f47e272]
+          - generic [ref=f47e198]:
+            - text: Create and manage production releases to make your app available to all users in your chosen countries.
+            - link "Learn more about Production (opens in a new tab)" [ref=f47e200] [cursor=pointer]:
+              - /url: https://play.google.com/console/about/publicreleases
+              - text: Learn more
+        - generic [ref=f47e208]:
+          - heading "Track summary (Phones, Tablets, Chrome OS, Android XR)" [level=4] [ref=f47e214]
+          - list [ref=f47e277]:
+            - listitem [ref=f47e278]: Active
+            - listitem [ref=f47e279]: Release 1.0.3 (4) in review
+            - listitem [ref=f47e280]: 1 country / region
+            - listitem [ref=f47e281]: 0 installs
+        - tablist [ref=f47e226]:
+          - tab "Release dashboard" [selected] [ref=f47e227] [cursor=pointer]
+          - tab "Releases" [ref=f47e230] [cursor=pointer]
+          - tab "Countries / regions" [ref=f47e233] [cursor=pointer]
+        - generic [ref=f47e238]:
+          - generic [ref=f47e240]:
+            - heading "Release dashboard" [level=2] [ref=f47e249]
+            - generic [ref=f47e284]:
+              - 'button "Release: Most recent (1.0.3 (4))" [ref=f47e289]':
+                - img [aria-hidden] [ref=f47e294]: arrow_drop_down
+              - 'button "Compare to: All releases" [ref=f47e299]':
+                - img [aria-hidden] [ref=f47e304]: arrow_drop_down
+              - 'button "Granularity: Daily" [ref=f47e307] [cursor=pointer]':
+                - img [aria-hidden] [ref=f47e312]: arrow_drop_down
+          - generic [ref=f47e315]:
+            - generic [ref=f47e318]:
+              - heading "1 issue needs attention" [level=3] [ref=f47e327]
+              - generic [ref=f47e330]:
+                - generic [ref=f47e332]:
+                  - heading "App optimization is below our threshold" [level=4] [ref=f47e341]
+                  - generic [ref=f47e345]:
+                    - generic [ref=f47e347]:
+                      - paragraph [ref=f47e348]: "Improve your percentages in the following categories:"
+                      - list [ref=f47e349]:
+                        - listitem [ref=f47e350]: Obfuscation (1%)
+                      - paragraph [ref=f47e351]:
+                        - text: Percentages under 25% in any category of your app may impact your visibility and publishing capabilities on Google Play. To prevent this, optimize your app by the deadline.
+                        - link "Learn more about app optimization" [ref=f47e352] [cursor=pointer]:
+                          - /url: https://developer.android.com/topic/performance/app-optimization/enable-app-optimization
+                          - text: Learn more
+                    - generic [ref=f47e353]:
+                      - generic [ref=f47e354]: Memory usage
+                      - generic [ref=f47e361]:
+                        - img [aria-hidden] [ref=f47e364]: error
+                        - generic [ref=f47e365]: Bad behavior
+                      - generic [ref=f47e367]: "Release name: 1.0.3 (4)"
+                    - generic [ref=f47e373]:
+                      - generic [ref=f47e374]: Fix by
+                      - generic [ref=f47e375]: Feb 2027
+                    - link "View affected bundle" [ref=f47e381] [cursor=pointer]:
+                      - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/app-bundle-explorer?artifactId=4860227647267263923&tab=details
+                    - generic [ref=f47e386]:
+                      - generic [ref=f47e387]: Is this useful?
+                      - button "Thumb up button for reporting the information as useful" [ref=f47e388] [cursor=pointer]:
+                        - img [aria-hidden] [ref=f47e391]: thumb_up
+                      - button "Thumb down button for reporting the information as not useful" [ref=f47e392] [cursor=pointer]:
+                        - img [aria-hidden] [ref=f47e395]: thumb_down
+                - button "Show less" [expanded] [ref=f47e398] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e401]: expand_less
+            - generic [ref=f47e404]:
+              - generic [ref=f47e408]:
+                - heading "2 actions recommended" [level=3] [ref=f47e413]
+                - button "Expand all" [ref=f47e418]
+              - generic [ref=f47e422]:
+                - generic [ref=f47e424]:
+                  - heading "Your app uses an outdated SDK version of androidx.fragment:fragment" [level=5] [ref=f47e433]
+                  - generic [ref=f47e434]:
+                    - generic [ref=f47e435]: Technical quality
+                    - generic [ref=f47e440]: "Release name: 1.0.3 (4)"
+                - button "Show more" [ref=f47e447] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e450]: expand_more
+              - generic [ref=f47e454]:
+                - generic [ref=f47e456]:
+                  - heading "Edge-to-edge may not display for all users" [level=5] [ref=f47e465]
+                  - generic [ref=f47e466]:
+                    - generic [ref=f47e467]: User experience
+                    - generic [ref=f47e472]: "Release name: 1.0.3 (4)"
+                - button "Show more" [ref=f47e479] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e482]: expand_more
+          - generic [ref=f47e485]:
+            - generic [ref=f47e489]:
+              - heading "Release stability" [level=2] [ref=f47e494]
+              - generic [ref=f47e501]:
+                - button "Collapse section" [ref=f47e503] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e506]: view_agenda
+                - button "Collapse section" [ref=f47e508] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e511]: grid_view
+            - generic [ref=f47e513]:
+              - generic [ref=f47e514]:
+                - generic [ref=f47e518]:
+                  - generic [ref=f47e521]:
+                    - button "User-perceived crashes" [ref=f47e525]
+                    - generic [ref=f47e526]: "-"
+                  - generic [ref=f47e541]:
+                    - img [aria-hidden] [ref=f47e545]: equalizer
+                    - paragraph [ref=f47e547]: Data unavailable
+                  - link "Explore report of User-perceived crashes" [ref=f47e550] [cursor=pointer]:
+                    - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/vitals/crashes?errorType=CRASH&versionCode=4
+                    - generic [ref=f47e553]: Explore
+                    - img [aria-hidden] [ref=f47e555]: arrow_right_alt
+                - generic [ref=f47e559]:
+                  - generic [ref=f47e562]:
+                    - button "User-perceived crash rate" [ref=f47e566]
+                    - generic [ref=f47e567]: "-"
+                  - generic [ref=f47e582]:
+                    - img [aria-hidden] [ref=f47e586]: equalizer
+                    - paragraph [ref=f47e588]: Data unavailable
+                  - link "Explore report of User-perceived crash rate" [ref=f47e591] [cursor=pointer]:
+                    - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/vitals/metrics/details?days=28&metric=USER_PERCEIVED_CRASHES&versionCode=4&granularity=DAILY_GRANULARITY&aggregationPeriod=AGGREGATION_PERIOD_28D
+                    - generic [ref=f47e594]: Explore
+                    - img [aria-hidden] [ref=f47e596]: arrow_right_alt
+                - generic [ref=f47e600]:
+                  - generic [ref=f47e603]:
+                    - button "User-perceived ANRs" [ref=f47e607]
+                    - generic [ref=f47e608]: "-"
+                  - generic [ref=f47e623]:
+                    - img [aria-hidden] [ref=f47e627]: equalizer
+                    - paragraph [ref=f47e629]: Data unavailable
+                  - link "Explore report of User-perceived ANRs" [ref=f47e632] [cursor=pointer]:
+                    - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/vitals/crashes?errorType=ANR&versionCode=4
+                    - generic [ref=f47e635]: Explore
+                    - img [aria-hidden] [ref=f47e637]: arrow_right_alt
+                - generic [ref=f47e641]:
+                  - generic [ref=f47e644]:
+                    - button "User-perceived ANR rate" [ref=f47e648]
+                    - generic [ref=f47e649]: "-"
+                  - generic [ref=f47e664]:
+                    - img [aria-hidden] [ref=f47e668]: equalizer
+                    - paragraph [ref=f47e670]: Data unavailable
+                  - link "Explore report of User-perceived ANR rate" [ref=f47e673] [cursor=pointer]:
+                    - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/vitals/metrics/details?days=28&metric=USER_PERCEIVED_ANRS&versionCode=4&granularity=DAILY_GRANULARITY&aggregationPeriod=AGGREGATION_PERIOD_28D
+                    - generic [ref=f47e676]: Explore
+                    - img [aria-hidden] [ref=f47e678]: arrow_right_alt
+              - generic [ref=f47e688]:
+                - generic [ref=f47e693]:
+                  - heading "Issues affecting the most users" [level=2] [ref=f47e697]
+                  - button "More information about \"Issues affecting the most users\"" [ref=f47e700] [cursor=pointer]:
+                    - img [aria-hidden] [ref=f47e701]: help
+                - grid "Issues affecting the most users" [ref=f47e706]:
+                  - row [ref=f47e707]:
+                    - columnheader "Issue" [ref=f47e708]
+                    - columnheader "Type" [ref=f47e709]
+                    - columnheader "Affected versions" [ref=f47e710]
+                    - columnheader "Affected users" [ref=f47e711]:
+                      - text: Affected users
+                      - img [aria-hidden] [ref=f47e713]: help_outline
+                    - columnheader "Events" [ref=f47e714]:
+                      - text: Events
+                      - img [aria-hidden] [ref=f47e716]: help_outline
+                    - columnheader "Last occurred" [ref=f47e717]:
+                      - text: Last occurred
+                      - img [aria-hidden] [ref=f47e719]: help_outline
+                    - cell [ref=f47e720]
+                  - row [ref=f47e721]:
+                    - cell "No results" [ref=f47e722]
+          - generic [ref=f47e727]:
+            - generic [ref=f47e731]:
+              - heading "Reviews" [level=2] [ref=f47e736]
+              - generic [ref=f47e743]:
+                - button "Collapse section" [ref=f47e745] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e748]: view_agenda
+                - button "Collapse section" [ref=f47e750] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e753]: grid_view
+            - generic [ref=f47e756]:
+              - generic [ref=f47e760]:
+                - generic [ref=f47e761]: 1 and 2 star ratings
+                - generic [ref=f47e776]:
+                  - img [aria-hidden] [ref=f47e780]: equalizer
+                  - paragraph [ref=f47e782]: No reviews
+                - link "Explore report of 1 and 2 star ratings" [ref=f47e785] [cursor=pointer]:
+                  - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/user-feedback/reviews?versionCodes=4&starCounts=1%2C2
+                  - generic [ref=f47e788]: Explore
+                  - img [aria-hidden] [ref=f47e790]: arrow_right_alt
+              - generic [ref=f47e794]:
+                - generic [ref=f47e795]: 4 and 5 star ratings
+                - generic [ref=f47e810]:
+                  - img [aria-hidden] [ref=f47e814]: equalizer
+                  - paragraph [ref=f47e816]: No reviews
+                - link "Explore report of 4 and 5 star ratings" [ref=f47e819] [cursor=pointer]:
+                  - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/user-feedback/reviews?versionCodes=4&starCounts=4%2C5
+                  - generic [ref=f47e822]: Explore
+                  - img [aria-hidden] [ref=f47e824]: arrow_right_alt
+          - generic [ref=f47e827]:
+            - generic [ref=f47e831]:
+              - heading "Installs and uninstalls" [level=2] [ref=f47e836]
+              - generic [ref=f47e843]:
+                - button "Collapse section" [ref=f47e845] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e848]: view_agenda
+                - button "Collapse section" [ref=f47e850] [cursor=pointer]:
+                  - img [aria-hidden] [ref=f47e853]: grid_view
+            - generic [ref=f47e856]:
+              - generic [ref=f47e860]:
+                - generic [ref=f47e863]:
+                  - button "Install base" [ref=f47e867]
+                  - generic [ref=f47e868]: "-"
+                - generic [ref=f47e883]:
+                  - img [aria-hidden] [ref=f47e887]: equalizer
+                  - paragraph [ref=f47e889]: Data unavailable
+                - link "Explore report of Install base" [ref=f47e892] [cursor=pointer]:
+                  - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/statistics?metrics=ACTIVE_DEVICES-ALL-UNIQUE-PER_INTERVAL-DAY&dimension=APP_VERSION&dimensionValues=4&dateRange=2026_9_7-2026_9_8
+                  - generic [ref=f47e895]: Explore
+                  - img [aria-hidden] [ref=f47e897]: arrow_right_alt
+              - generic [ref=f47e901]:
+                - generic [ref=f47e904]:
+                  - button "Install and update events" [ref=f47e908]
+                  - generic [ref=f47e909]: "-"
+                - generic [ref=f47e924]:
+                  - img [aria-hidden] [ref=f47e928]: equalizer
+                  - paragraph [ref=f47e930]: Data unavailable
+                - link "Explore report of Install and update events" [ref=f47e933] [cursor=pointer]:
+                  - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/statistics?metrics=DEVICE_ACQUISITION-ALL-EVENTS-PER_INTERVAL-DAY%2CDEVICE_UPDATES-ALL-EVENTS-PER_INTERVAL-DAY&dimension=APP_VERSION&dimensionValues=4&dateRange=2026_9_7-2026_9_8
+                  - generic [ref=f47e936]: Explore
+                  - img [aria-hidden] [ref=f47e938]: arrow_right_alt
+              - generic [ref=f47e942]:
+                - generic [ref=f47e945]:
+                  - button "Uninstall events" [ref=f47e949]
+                  - generic [ref=f47e950]: "-"
+                - generic [ref=f47e965]:
+                  - img [aria-hidden] [ref=f47e969]: equalizer
+                  - paragraph [ref=f47e971]: Data unavailable
+                - link "Explore report of Uninstall events" [ref=f47e974] [cursor=pointer]:
+                  - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/statistics?metrics=DEVICE_LOSS-ALL-EVENTS-PER_INTERVAL-DAY&dimension=APP_VERSION&dimensionValues=4&dateRange=2026_9_7-2026_9_8
+                  - generic [ref=f47e977]: Explore
+                  - img [aria-hidden] [ref=f47e979]: arrow_right_alt
+      - generic [ref=f47e261]:
+        - generic [ref=f47e262]:
+          - link "Product updates" [ref=f47e263] [cursor=pointer]:
+            - /url: https://play.google.com/console/about/whats-new/
+          - link "Status dashboard" [ref=f47e264] [cursor=pointer]:
+            - /url: https://status.play.google.com/
+          - link "Help" [ref=f47e265] [cursor=pointer]:
+            - /url: /console/u/0/developers/6132721113732535566/help-and-support?app=4976046230893494126
+        - generic [ref=f47e266]:
+          - generic [ref=f47e267]: © 2026 Google
+          - link "Privacy" [ref=f47e268] [cursor=pointer]:
+            - /url: https://www.google.com/policies/privacy/
+          - link "Developer Distribution Agreement" [ref=f47e269] [cursor=pointer]:
+            - /url: https://play.google.com/about/developer-distribution-agreement.html
+          - link "Terms of Service" [ref=f47e270] [cursor=pointer]:
+            - /url: https://play.google.com/about/console/terms-of-service/

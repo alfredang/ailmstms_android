@@ -5,6 +5,14 @@ Version: 1.0.3 (4)
 Company Play account: sales@tertiarycourses.com.sg
 Developer: Tertiary Infotech Academy Pte Ltd (6132721113732535566)
 
+## Production submission — 7 September 2026
+
+- User requested production directly under the company account.
+- Production release 1.0.3 (4) created from the existing verified bundle; Singapore availability selected.
+- Withdrew the previous review and excluded the Alpha release using Save for later. Closed-testing release is not part of this submission.
+- Submitted five changes: production full rollout, Singapore availability, app name, description and supplied icon. Console confirmed five changes sent for review and Production under Changes in review.
+- Evidence: `qa/1.0.3/production-review.yml` and `qa/1.0.3/production-track.yml`. Awaiting Google approval; not yet publicly available in production.
+
 ## Final company icon — 7 September 2026
 
 - Used the exact final attachment: `branding/tia-company-approved.png`, resized only for the launcher and Play listing.
