@@ -1,11 +1,11 @@
 # Google Play listing
 
-Name: AI LMS TMS
+Name: TIA LMS
 
 Short description: Your courseware, class calendar and reminders for learners and trainers.
 
 Full description:
-AI LMS TMS connects Tertiary Infotech Academy learners and trainers to their course materials and class schedules.
+TIA LMS connects Tertiary Infotech Academy learners and trainers to their course materials and class schedules.
 
 SIGN IN WITH AN EMAIL CODE
 Use your registered email address to receive a one-time sign-in code. This app is for existing learner and trainer accounts. It does not create new accounts.

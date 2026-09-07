@@ -1,0 +1,9 @@
+{
+  "version": "1.0.3",
+  "versionCode": 4,
+  "sha256": {
+    "store/branding/tia-company-approved.png": "200d970cf84caaedf7a4cd5716eae80cacaab74e78277e8f67ddb860276e866a",
+    "store/icon-512.png": "da05c0d39c1efd3ad4a1f11d2a194b456e68179128c634809ee15b0ff69f3adc",
+    "app/build/outputs/bundle/release/app-release.aab": "50f377c5f4b12a02a5d1cee34146cad2a91a310d5bac715ac691aa87206d90c5"
+  }
+}

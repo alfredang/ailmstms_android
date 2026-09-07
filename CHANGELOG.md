@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.3] — 2026-09-07 · versionCode 4
+
+- Replaced the icon with the final user-supplied company T logo and TIA LMS title.
+- Restarted Alpha review with version 1.0.3 (4) and the final icon on 7 September 2026.
+
 ## [1.0.2] — 2026-09-07 · versionCode 3
 
 - Updated the launcher icon to the supplied blue TIA LMS company artwork.

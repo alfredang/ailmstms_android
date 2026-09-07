@@ -1,9 +1,16 @@
 # TIA LMS Android release status
 
 Package: `com.tertiaryinfotech.ailmstms`
-Version: 1.0.2 (3)
+Version: 1.0.3 (4)
 Company Play account: sales@tertiarycourses.com.sg
 Developer: Tertiary Infotech Academy Pte Ltd (6132721113732535566)
+
+## Final company icon — 7 September 2026
+
+- Used the exact final attachment: `branding/tia-company-approved.png`, resized only for the launcher and Play listing.
+- Version 1.0.3 (4): signed bundle built, four unit tests and AppFlowTest pass, lint zero errors (20 warnings).
+- Play review restarted with the final icon and version 1.0.3 (4). Console confirms Changes in review and 2 changes sent for review. Evidence: `qa/1.0.3/play-review.yml`.
+- App remains named TIA LMS with the same package and company account.
 
 ## Branding update — 7 September 2026
 
