@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] — 2026-09-07 · versionCode 3
+
+- Updated the launcher icon to the supplied blue TIA LMS company artwork.
+- Renamed the app and its visible headings to TIA LMS.
+- Submitted version 1.0.2 (3) and updated Play listing to Alpha review on 7 September 2026.
+
 ## [1.0.1] — 2026-09-07 · versionCode 2
 
 ### Added

@@ -1,0 +1,155 @@
+- generic [active] [ref=f26e1]:
+  - generic:
+    - generic:
+      - progressbar [aria-hidden]
+      - generic: Loading Google Play Console
+  - generic [ref=f26e3]:
+    - banner [ref=f26e4]:
+      - generic [ref=f26e6]:
+        - link [ref=f26e7] [cursor=pointer]:
+          - /url: /console/u/0/developers/6132721113732535566/app-list
+          - button "Google Play Console logo" [ref=f26e8]
+        - generic [ref=f26e9]:
+          - button "Unread notifications Open notification center" [ref=f26e15]:
+            - img [aria-hidden] [ref=f26e19]: notifications_unread
+            - generic [ref=f26e20]: Unread notifications
+          - generic [ref=f26e22]:
+            - button "TIA LMS" [ref=f26e30] [cursor=pointer]
+            - button [ref=f26e45] [cursor=pointer]:
+              - img "Switch developer accounts" [ref=f26e47]
+    - navigation [ref=f26e53]:
+      - link "All apps" [ref=f26e54] [cursor=pointer]:
+        - /url: /console/u/0/developers/6132721113732535566/app-list
+        - img [aria-hidden] [ref=f26e56]: keyboard_backspace
+      - list [ref=f26e58]:
+        - listitem "Dashboard" [ref=f26e61]:
+          - button "Dashboard" [ref=f26e62] [cursor=pointer]:
+            - img [aria-hidden] [ref=f26e65]: dashboard
+        - listitem "Statistics" [ref=f26e69]:
+          - button "Statistics" [ref=f26e70] [cursor=pointer]:
+            - img [aria-hidden] [ref=f26e73]: bar_chart
+        - listitem "Publishing overview" [ref=f26e77]:
+          - button "Publishing overview" [ref=f26e78] [cursor=pointer]:
+            - img [aria-hidden] [ref=f26e81]: overview
+        - listitem "Protected with Play" [ref=f26e85]:
+          - button "Protected with Play" [ref=f26e86] [cursor=pointer]:
+            - img [aria-hidden] [ref=f26e89]: shield
+        - listitem "Test and release" [ref=f26e93]:
+          - button "Test and release" [ref=f26e94] [cursor=pointer]:
+            - img [aria-hidden] [ref=f26e97]: rocket_launch
+        - listitem "Monitor and improve" [ref=f26e155]:
+          - button "Monitor and improve" [ref=f26e156] [cursor=pointer]:
+            - img [aria-hidden] [ref=f26e159]: vital_signs
+        - listitem "Grow users" [ref=f26e163]:
+          - button "Grow users" [ref=f26e164] [cursor=pointer]:
+            - img [aria-hidden] [ref=f26e167]: finance_mode
+        - listitem "Monetize with Play" [ref=f26e171]:
+          - button "Monetize with Play" [ref=f26e172] [cursor=pointer]:
+            - img [aria-hidden] [ref=f26e175]: sell
+    - generic [ref=f26e178]:
+      - generic [ref=f26e1443]:
+        - generic [ref=f26e1732]:
+          - heading "Publishing overview" [level=1] [ref=f26e1738]
+          - generic [ref=f26e1743]:
+            - text: See an overview of the changes made to your app, and control when changes are sent for review or published.
+            - button "Show more details about Publishing overview" [ref=f26e1744] [cursor=pointer]: Show more
+        - generic [ref=f26e1749]:
+          - button "Managed publishing off" [ref=f26e1754] [cursor=pointer]:
+            - generic [ref=f26e1755]:
+              - img [aria-hidden] [ref=f26e1759]: sync_disabled
+              - generic [ref=f26e1760]: Managed publishing off
+            - img [aria-hidden] [ref=f26e1762]: arrow_drop_down
+          - generic [ref=f26e1763]:
+            - generic [ref=f26e1764]:
+              - img [aria-hidden] [ref=f26e1767]: history
+              - generic [ref=f26e1768]: Last published on September 7, 2026
+            - link "Submission activity" [ref=f26e1770] [cursor=pointer]:
+              - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/publishing/submission-activity
+              - img [aria-hidden] [ref=f26e1775]: arrow_right_alt
+        - generic [ref=f26e1778]:
+          - generic [ref=f26e1782]:
+            - generic [ref=f26e1783]:
+              - heading "Changes in review" [level=2] [ref=f26e1787]
+              - button "More information about \"Changes in review\"" [ref=f26e1790] [cursor=pointer]:
+                - img [aria-hidden] [ref=f26e1791]: help
+            - generic [ref=f26e1793]:
+              - button "Remove changes" [ref=f26e1796]
+              - 'button "Hide content: Changes in review" [expanded] [ref=f26e1799]':
+                - generic [ref=f26e1802]: Hide
+                - img [aria-hidden] [ref=f26e1804]: expand_less
+          - generic [ref=f26e1805]:
+            - generic [ref=f26e1941]:
+              - heading "Running quick checks for commonly found issues" [level=4] [ref=f26e1951]
+              - meter "Running quick checks for commonly found issues" [ref=f26e1952]
+              - generic [ref=f26e1954]:
+                - paragraph [ref=f26e1955]:
+                  - text: These checks help to find certain policy and app quality issues, so you can fix them before review. Changes will be sent for review as soon as checks complete successfully.
+                  - link "Go to the Help center to learn more about the automated checks we run to detect issues before you send your changes for review" [ref=f26e1956] [cursor=pointer]:
+                    - /url: https://support.google.com/googleplay/android-developer/answer/14807773
+                    - text: Learn more
+                - paragraph [ref=f26e1957]: Up to 14 minutes remaining
+            - grid "Changes" [ref=f26e1830]:
+              - row [ref=f26e1831]:
+                - columnheader "Item changed" [ref=f26e1832]
+                - columnheader "Description" [ref=f26e1834]
+                - cell [ref=f26e1836]
+              - row [ref=f26e1838]:
+                - img [aria-hidden] [ref=f26e1841]: slow_motion_video
+                - gridcell "Closed testing - Alpha" [ref=f26e1842]
+              - row [ref=f26e1843]:
+                - gridcell "1.0.2 (3)" [ref=f26e1844]
+                - gridcell "Start full rollout" [ref=f26e1849]
+                - gridcell [ref=f26e1854]:
+                  - listbox "More actions" [ref=f26e1857]:
+                    - button "More actions" [ref=f26e1860] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f26e1863]: more_vert
+              - row [ref=f26e1864]:
+                - img [aria-hidden] [ref=f26e1867]: play_prism
+                - gridcell "Store listings" [ref=f26e1868]
+              - row [ref=f26e1869]:
+                - gridcell "English (United States) – en-US Default store listing" [ref=f26e1870]:
+                  - generic [ref=f26e1872]:
+                    - generic [ref=f26e1873]: English (United States) – en-US
+                    - generic [ref=f26e1875]: Default store listing
+                - gridcell "Change app name to 'TIA LMS'" [ref=f26e1876]
+                - gridcell [ref=f26e1881]:
+                  - listbox "More actions" [ref=f26e1884]:
+                    - button "More actions" [ref=f26e1887] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f26e1890]: more_vert
+              - row [ref=f26e1891]:
+                - gridcell "English (United States) – en-US Default store listing" [ref=f26e1892]:
+                  - generic [ref=f26e1894]:
+                    - generic [ref=f26e1895]: English (United States) – en-US
+                    - generic [ref=f26e1897]: Default store listing
+                - gridcell "Change full description" [ref=f26e1898]
+                - gridcell [ref=f26e1903]:
+                  - listbox "More actions" [ref=f26e1906]:
+                    - button "More actions" [ref=f26e1909] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f26e1912]: more_vert
+              - row [ref=f26e1913]:
+                - gridcell "English (United States) – en-US Default store listing" [ref=f26e1914]:
+                  - generic [ref=f26e1916]:
+                    - generic [ref=f26e1917]: English (United States) – en-US
+                    - generic [ref=f26e1919]: Default store listing
+                - gridcell "Change app icon" [ref=f26e1920]
+                - gridcell [ref=f26e1925]:
+                  - listbox "More actions" [ref=f26e1928]:
+                    - button "More actions" [ref=f26e1931] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f26e1934]: more_vert
+      - generic [ref=f26e356]:
+        - generic [ref=f26e1664]:
+          - link "Product updates" [ref=f26e1665] [cursor=pointer]:
+            - /url: https://play.google.com/console/about/whats-new/
+          - link "Status dashboard" [ref=f26e1666] [cursor=pointer]:
+            - /url: https://status.play.google.com/
+          - link "Help" [ref=f26e1667] [cursor=pointer]:
+            - /url: /console/u/0/developers/6132721113732535566/help-and-support?app=4976046230893494126
+        - generic [ref=f26e1668]:
+          - generic [ref=f26e1669]: © 2026 Google
+          - link "Privacy" [ref=f26e1670] [cursor=pointer]:
+            - /url: https://www.google.com/policies/privacy/
+          - link "Developer Distribution Agreement" [ref=f26e1671] [cursor=pointer]:
+            - /url: https://play.google.com/about/developer-distribution-agreement.html
+          - link "Terms of Service" [ref=f26e1672] [cursor=pointer]:
+            - /url: https://play.google.com/about/console/terms-of-service/
+  - status [ref=f26e821]

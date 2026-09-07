@@ -63,7 +63,7 @@ fun openLink(context:android.content.Context,url:String){if(isSafeLink(url)) run
  LaunchedEffect(openCalendar){if(openCalendar)tab=2}
  val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted->if(granted)vm.setPush(true)}
  val tabs=listOf("Home" to Icons.Default.Home,"Courses" to SchoolIcon,"Calendar" to Icons.Default.DateRange,"Account" to Icons.Default.Person)
- Scaffold(topBar={TopAppBar(title={Text("AI LMS TMS",fontWeight=FontWeight.Bold)},actions={if(vm.profile!=null) IconButton(onClick=vm::refresh,enabled=!vm.busy){Icon(Icons.Default.Refresh,"Refresh classes")}})},bottomBar={if(vm.profile!=null)NavigationBar { tabs.forEachIndexed { i,item ->NavigationBarItem(selected=tab==i,onClick={tab=i;selected=null},icon={Icon(item.second,null)},label={Text(item.first)})} }}) { padding ->
+ Scaffold(topBar={TopAppBar(title={Text("TIA LMS",fontWeight=FontWeight.Bold)},actions={if(vm.profile!=null) IconButton(onClick=vm::refresh,enabled=!vm.busy){Icon(Icons.Default.Refresh,"Refresh classes")}})},bottomBar={if(vm.profile!=null)NavigationBar { tabs.forEachIndexed { i,item ->NavigationBarItem(selected=tab==i,onClick={tab=i;selected=null},icon={Icon(item.second,null)},label={Text(item.first)})} }}) { padding ->
  Column(Modifier.fillMaxSize().padding(padding)) {
   if(vm.isDemo)Surface(color=MaterialTheme.colorScheme.tertiaryContainer){Text("DEMO · Fictional sample courses",Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp),style=MaterialTheme.typography.labelMedium)}
   if(vm.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -178,10 +178,10 @@ fun openLink(context:android.content.Context,url:String){if(isSafeLink(url)) run
   item{Heading("Help & feedback")}
   item{OutlinedTextField(feedbackTitle,{feedbackTitle=it},label={Text("Feedback title")},singleLine=true,modifier=Modifier.fillMaxWidth())}
   item{OutlinedTextField(feedback,{feedback=it},label={Text("How can we help?")},minLines=3,modifier=Modifier.fillMaxWidth())}
-  item{OutlinedButton(onClick={openLink(context,"https://wa.me/6588666375?text="+java.net.URLEncoder.encode("AI LMS TMS Android feedback\n$feedbackTitle\n$feedback","UTF-8"))},enabled=feedback.isNotBlank()){Text("Send via WhatsApp")}}
-  item{Heading("About AI LMS TMS")}
+  item{OutlinedButton(onClick={openLink(context,"https://wa.me/6588666375?text="+java.net.URLEncoder.encode("TIA LMS Android feedback\n$feedbackTitle\n$feedback","UTF-8"))},enabled=feedback.isNotBlank()){Text("Send via WhatsApp")}}
+  item{Heading("About TIA LMS")}
   item{Text("Your courses and teaching schedule, connected to Tertiary Infotech Academy’s learning and training management system.");Text("Tertiary Infotech Academy Pte. Ltd.",Modifier.padding(top=12.dp),fontWeight=FontWeight.SemiBold);Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",style=MaterialTheme.typography.bodySmall)}
-  item{TextButton(onClick={openLink(context,"https://lms-tms.tertiaryinfotech.com/mobile/privacy.html")}){Text("Privacy policy")};TextButton(onClick={openLink(context,"https://www.tertiaryinfotech.com")}){Text("Developer website")};TextButton(onClick={val intent=Intent(Intent.ACTION_SENDTO,android.net.Uri.parse("mailto:sales@tertiarycourses.com.sg")).putExtra(Intent.EXTRA_SUBJECT,"AI LMS TMS account deletion request");runCatching{context.startActivity(intent)}}){Text("Request account deletion")};Text("Contact the training provider to request deletion. Training records subject to legal retention requirements may be retained.",style=MaterialTheme.typography.bodySmall)}
+  item{TextButton(onClick={openLink(context,"https://lms-tms.tertiaryinfotech.com/mobile/privacy.html")}){Text("Privacy policy")};TextButton(onClick={openLink(context,"https://www.tertiaryinfotech.com")}){Text("Developer website")};TextButton(onClick={val intent=Intent(Intent.ACTION_SENDTO,android.net.Uri.parse("mailto:sales@tertiarycourses.com.sg")).putExtra(Intent.EXTRA_SUBJECT,"TIA LMS account deletion request");runCatching{context.startActivity(intent)}}){Text("Request account deletion")};Text("Contact the training provider to request deletion. Training records subject to legal retention requirements may be retained.",style=MaterialTheme.typography.bodySmall)}
   item{OutlinedButton(onClick=vm::logout,enabled=!vm.busy,modifier=Modifier.fillMaxWidth()){Text("Sign out")}}
  }
 }
