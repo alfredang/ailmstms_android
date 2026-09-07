@@ -1,0 +1,30 @@
+[
+  {
+    "skill": "android-app-submission",
+    "source": "/Users/alfredang/.claude/skills/android-app-submission",
+    "destination": ".skills/claude/android-app-submission",
+    "filesVerified": 1,
+    "updatedFiles": []
+  },
+  {
+    "skill": "android-auto-release",
+    "source": "/Users/alfredang/.claude/skills/android-auto-release",
+    "destination": ".skills/claude/android-auto-release",
+    "filesVerified": 1,
+    "updatedFiles": []
+  },
+  {
+    "skill": "android-feedback-about",
+    "source": "/Users/alfredang/.claude/skills/android-feedback-about",
+    "destination": ".skills/claude/android-feedback-about",
+    "filesVerified": 1,
+    "updatedFiles": []
+  },
+  {
+    "skill": "mobile-android-design",
+    "source": "/Users/alfredang/.claude/skills/mobile-android-design",
+    "destination": ".skills/claude/mobile-android-design",
+    "filesVerified": 5,
+    "updatedFiles": []
+  }
+]

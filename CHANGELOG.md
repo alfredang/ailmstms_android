@@ -6,7 +6,7 @@
 - Demo reminder preview lets reviewers test notification permissions and opening the calendar without OTP or private learner data.
 
 ### Play submission
-- Pending initial closed-testing review.
+- Submitted to Google Play review on 7 September 2026: Alpha closed testing, All Testers, Singapore; versionCode 2. Console shows Changes in review; automated quick checks running.
 
 ## [1.0.0] — 2026-09-07 · versionCode 1
 

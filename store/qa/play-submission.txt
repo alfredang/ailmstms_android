@@ -1,0 +1,248 @@
+### Open tabs
+- 0: (current) [Publishing overview | AI LMS TMS](https://play.google.com/console/u/0/developers/6132721113732535566/app/4976046230893494126/publishing)
+- 1: [Extensions](chrome://extensions/)
+- 2: [ChatGPT - Chrome Web Store](https://chromewebstore.google.com/detail/chatgpt/hehggadaopoacecdllhhajmbjkdcmajg?hl=en-GB&utm_source=ext_sidebar)
+- 3: [ChatGPT](https://chatgpt.com/)
+### Page
+- Page URL: https://play.google.com/console/u/0/developers/6132721113732535566/app/4976046230893494126/publishing
+- Page Title: Publishing overview | AI LMS TMS
+### Snapshot
+```yaml
+- generic [active] [ref=f17e1]:
+  - generic:
+    - generic:
+      - progressbar [aria-hidden]
+      - generic: Loading Google Play Console
+  - generic [ref=f17e3]:
+    - banner [ref=f17e4]:
+      - generic [ref=f17e6]:
+        - link [ref=f17e7] [cursor=pointer]:
+          - /url: /console/u/0/developers/6132721113732535566/app-list
+          - button "Google Play Console logo" [ref=f17e8]
+        - generic [ref=f17e9]:
+          - button "Unread notifications Open notification center" [ref=f17e45]:
+            - img [aria-hidden] [ref=f17e49]: notifications_unread
+            - generic [ref=f17e50]: Unread notifications
+          - generic [ref=f17e10]:
+            - button "AI LMS TMS" [ref=f17e59] [cursor=pointer]
+            - button [ref=f17e14] [cursor=pointer]:
+              - img "Switch developer accounts" [ref=f17e16]
+    - navigation [ref=f17e72]:
+      - link "All apps" [ref=f17e73] [cursor=pointer]:
+        - /url: /console/u/0/developers/6132721113732535566/app-list
+        - img [aria-hidden] [ref=f17e75]: keyboard_backspace
+      - list [ref=f17e77]:
+        - listitem "Dashboard" [ref=f17e80]:
+          - button "Dashboard" [ref=f17e81] [cursor=pointer]:
+            - img [aria-hidden] [ref=f17e84]: dashboard
+        - listitem "Statistics" [ref=f17e88]:
+          - button "Statistics" [ref=f17e89] [cursor=pointer]:
+            - img [aria-hidden] [ref=f17e92]: bar_chart
+        - listitem "Publishing overview" [ref=f17e96]:
+          - button "Publishing overview" [ref=f17e97] [cursor=pointer]:
+            - img [aria-hidden] [ref=f17e100]: overview
+        - listitem "Protected with Play" [ref=f17e104]:
+          - button "Protected with Play" [ref=f17e105] [cursor=pointer]:
+            - img [aria-hidden] [ref=f17e108]: shield
+        - listitem "Test and release" [ref=f17e112]:
+          - button "Test and release" [ref=f17e113] [cursor=pointer]:
+            - img [aria-hidden] [ref=f17e116]: rocket_launch
+        - listitem "Monitor and improve" [ref=f17e120]:
+          - button "Monitor and improve" [ref=f17e121] [cursor=pointer]:
+            - img [aria-hidden] [ref=f17e124]: vital_signs
+        - listitem "Grow users" [ref=f17e172]:
+          - button "Grow users" [ref=f17e173] [cursor=pointer]:
+            - img [aria-hidden] [ref=f17e176]: finance_mode
+        - listitem "Monetize with Play" [ref=f17e180]:
+          - button "Monetize with Play" [ref=f17e181] [cursor=pointer]:
+            - img [aria-hidden] [ref=f17e184]: sell
+    - generic [ref=f17e22]:
+      - generic [ref=f17e1418]:
+        - generic [ref=f17e1941]:
+          - heading "Publishing overview" [level=1] [ref=f17e1947]
+          - generic [ref=f17e1952]:
+            - text: See an overview of the changes made to your app, and control when changes are sent for review or published.
+            - button "Show more details about Publishing overview" [ref=f17e1953] [cursor=pointer]: Show more
+        - generic [ref=f17e1958]:
+          - button "Managed publishing off" [ref=f17e1963] [cursor=pointer]:
+            - generic [ref=f17e1964]:
+              - img [aria-hidden] [ref=f17e1968]: sync_disabled
+              - generic [ref=f17e1969]: Managed publishing off
+            - img [aria-hidden] [ref=f17e1971]: arrow_drop_down
+          - link "Submission activity" [ref=f17e1974] [cursor=pointer]:
+            - /url: /console/u/0/developers/6132721113732535566/app/4976046230893494126/publishing/submission-activity
+            - img [aria-hidden] [ref=f17e1979]: arrow_right_alt
+        - generic [ref=f17e1982]:
+          - generic [ref=f17e1986]:
+            - generic [ref=f17e1987]:
+              - heading "Changes in review" [level=2] [ref=f17e1991]
+              - button "More information about \"Changes in review\"" [ref=f17e1994] [cursor=pointer]:
+                - img [aria-hidden] [ref=f17e1995]: help
+            - generic [ref=f17e1997]:
+              - button "Remove changes" [ref=f17e2000]
+              - 'button "Hide content: Changes in review" [expanded] [ref=f17e2003]':
+                - generic [ref=f17e2006]: Hide
+                - img [aria-hidden] [ref=f17e2008]: expand_less
+          - generic [ref=f17e2009]:
+            - generic [ref=f17e2387]:
+              - heading "Running quick checks for commonly found issues" [level=4] [ref=f17e2397]
+              - meter "Running quick checks for commonly found issues" [ref=f17e2398]
+              - generic [ref=f17e2400]:
+                - paragraph [ref=f17e2401]:
+                  - text: These checks help to find certain policy and app quality issues, so you can fix them before review. Changes will be sent for review as soon as checks complete successfully.
+                  - link "Go to the Help center to learn more about the automated checks we run to detect issues before you send your changes for review" [ref=f17e2402] [cursor=pointer]:
+                    - /url: https://support.google.com/googleplay/android-developer/answer/14807773
+                    - text: Learn more
+                - paragraph [ref=f17e2403]: Up to 14 minutes remaining
+            - grid "Changes" [ref=f17e2034]:
+              - row [ref=f17e2035]:
+                - columnheader "Item changed" [ref=f17e2036]
+                - columnheader "Description" [ref=f17e2038]
+                - cell [ref=f17e2040]
+              - row [ref=f17e2042]:
+                - img [aria-hidden] [ref=f17e2045]: slow_motion_video
+                - gridcell "Closed testing - Alpha" [ref=f17e2046]
+              - row [ref=f17e2047]:
+                - gridcell "1.0.1 (2)" [ref=f17e2048]
+                - gridcell "Start full rollout" [ref=f17e2053]
+                - gridcell [ref=f17e2058]:
+                  - listbox "More actions" [ref=f17e2061]:
+                    - button "More actions" [ref=f17e2064] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2067]: more_vert
+              - row [ref=f17e2068]:
+                - gridcell "Countries / regions" [ref=f17e2069]
+                - 'gridcell "Add 1 country / region: Singapore" [ref=f17e2074]'
+                - gridcell [ref=f17e2079]:
+                  - listbox "More actions" [ref=f17e2082]:
+                    - button "More actions" [ref=f17e2085] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2088]: more_vert
+              - row [ref=f17e2089]:
+                - gridcell "Countries / regions" [ref=f17e2090]
+                - gridcell "Unsync from production" [ref=f17e2095]
+                - gridcell [ref=f17e2100]:
+                  - listbox "More actions" [ref=f17e2103]:
+                    - button "More actions" [ref=f17e2106] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2109]: more_vert
+              - row [ref=f17e2110]:
+                - gridcell "Track status" [ref=f17e2111]
+                - gridcell "Resume track" [ref=f17e2116]
+                - gridcell [ref=f17e2121]:
+                  - listbox "More actions" [ref=f17e2124]:
+                    - button "More actions" [ref=f17e2127] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2130]: more_vert
+              - row [ref=f17e2131]:
+                - gridcell "Testers" [ref=f17e2132]
+                - 'gridcell "Set testers to be managed by email lists: All Testers" [ref=f17e2137]'
+                - gridcell [ref=f17e2142]:
+                  - listbox "More actions" [ref=f17e2145]:
+                    - button "More actions" [ref=f17e2148] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2151]: more_vert
+              - row [ref=f17e2152]:
+                - gridcell "Testers" [ref=f17e2153]
+                - gridcell "Change feedback channel to sales@tertiarycourses.com.sg" [ref=f17e2158]
+                - gridcell [ref=f17e2163]:
+                  - listbox "More actions" [ref=f17e2166]:
+                    - button "More actions" [ref=f17e2169] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2172]: more_vert
+              - row [ref=f17e2173]:
+                - img [aria-hidden] [ref=f17e2176]: play_prism
+                - gridcell "Store listings" [ref=f17e2177]
+              - row [ref=f17e2178]:
+                - gridcell "English (United States) – en-US Default store listing" [ref=f17e2179]:
+                  - generic [ref=f17e2181]:
+                    - generic [ref=f17e2182]: English (United States) – en-US
+                    - generic [ref=f17e2184]: Default store listing
+                - gridcell "Add language. Provided app name (AI LMS TMS), and all other required information." [ref=f17e2185]
+                - gridcell [ref=f17e2190]:
+                  - listbox "More actions" [ref=f17e2193]:
+                    - button "More actions" [ref=f17e2196] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2199]: more_vert
+              - row [ref=f17e2200]:
+                - img [aria-hidden] [ref=f17e2203]: android_security_privacy_safe
+                - gridcell "App content" [ref=f17e2204]
+              - row [ref=f17e2205]:
+                - gridcell "Content Rating" [ref=f17e2206]
+                - gridcell "Submit new questionnaire" [ref=f17e2211]
+                - gridcell [ref=f17e2216]:
+                  - listbox "More actions" [ref=f17e2219]:
+                    - button "More actions" [ref=f17e2222] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2225]: more_vert
+              - row [ref=f17e2226]:
+                - gridcell "Target audience and content" [ref=f17e2227]
+                - gridcell "Update Target audience and content information. Target age is 18 and older." [ref=f17e2232]
+                - gridcell [ref=f17e2237]:
+                  - listbox "More actions" [ref=f17e2240]:
+                    - button "More actions" [ref=f17e2243] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2246]: more_vert
+              - row [ref=f17e2247]:
+                - gridcell "Privacy policy" [ref=f17e2248]
+                - gridcell "Set Privacy policy URL to https://lms-tms.tertiaryinfotech.com/mobile/privacy.html" [ref=f17e2253]
+                - gridcell [ref=f17e2258]:
+                  - listbox "More actions" [ref=f17e2261]:
+                    - button "More actions" [ref=f17e2264] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2267]: more_vert
+              - row [ref=f17e2268]:
+                - gridcell "Ads declaration" [ref=f17e2269]
+                - gridcell "Update ads declaration" [ref=f17e2274]
+                - gridcell [ref=f17e2279]:
+                  - listbox "More actions" [ref=f17e2282]:
+                    - button "More actions" [ref=f17e2285] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2288]: more_vert
+              - row [ref=f17e2289]:
+                - gridcell "Data safety" [ref=f17e2290]
+                - gridcell "Complete Data safety questionnaire" [ref=f17e2295]
+                - gridcell [ref=f17e2300]:
+                  - listbox "More actions" [ref=f17e2303]:
+                    - button "More actions" [ref=f17e2306] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2309]: more_vert
+              - row [ref=f17e2310]:
+                - gridcell "Health apps" [ref=f17e2311]
+                - gridcell "Complete Health apps declaration" [ref=f17e2316]
+                - gridcell [ref=f17e2321]:
+                  - listbox "More actions" [ref=f17e2324]:
+                    - button "More actions" [ref=f17e2327] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2330]: more_vert
+              - row [ref=f17e2331]:
+                - img [aria-hidden] [ref=f17e2334]: play_prism
+                - gridcell "Store settings" [ref=f17e2335]
+              - row [ref=f17e2336]:
+                - gridcell "App category" [ref=f17e2337]
+                - gridcell "Select app category (Education app)" [ref=f17e2342]
+                - gridcell [ref=f17e2347]:
+                  - listbox "More actions" [ref=f17e2350]:
+                    - button "More actions" [ref=f17e2353] [cursor=pointer]:
+                      - img [aria-hidden] [ref=f17e2356]: more_vert
+            - heading "What you've told us" [level=3] [ref=f17e2368]
+            - generic [ref=f17e2370]:
+              - text: "Items listed here aren't published, but we'll take them into account when reviewing your app:"
+              - list [ref=f17e2371]:
+                - listitem [ref=f17e2372]:
+                  - link "App content" [ref=f17e2373] [cursor=pointer]
+                  - text: ": Update Sign in details instructions (All or some functionality is restricted)"
+                - listitem [ref=f17e2374]:
+                  - link "App content" [ref=f17e2375] [cursor=pointer]
+                  - text: ": 'Advertising ID' declaration updated"
+                - listitem [ref=f17e2376]:
+                  - link "App content" [ref=f17e2377] [cursor=pointer]
+                  - text: ": 'Government apps' declaration updated"
+                - listitem [ref=f17e2378]:
+                  - link "App content" [ref=f17e2379] [cursor=pointer]
+                  - text: ": 'Financial features' declaration updated"
+      - generic [ref=f17e30]:
+        - generic [ref=f17e1873]:
+          - link "Product updates" [ref=f17e1874] [cursor=pointer]:
+            - /url: https://play.google.com/console/about/whats-new/
+          - link "Status dashboard" [ref=f17e1875] [cursor=pointer]:
+            - /url: https://status.play.google.com/
+          - link "Help" [ref=f17e1876] [cursor=pointer]:
+            - /url: /console/u/0/developers/6132721113732535566/help-and-support?app=4976046230893494126
+        - generic [ref=f17e1877]:
+          - generic [ref=f17e1878]: © 2026 Google
+          - link "Privacy" [ref=f17e1879] [cursor=pointer]:
+            - /url: https://www.google.com/policies/privacy/
+          - link "Developer Distribution Agreement" [ref=f17e1880] [cursor=pointer]:
+            - /url: https://play.google.com/about/developer-distribution-agreement.html
+          - link "Terms of Service" [ref=f17e1881] [cursor=pointer]:
+            - /url: https://play.google.com/about/console/terms-of-service/
+  - status [ref=f17e973]
+```

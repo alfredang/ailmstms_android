@@ -12,3 +12,5 @@ app/google-services.json
 .kotlin/
 /scripts/configure-server-push.py
 /scripts/configure-firebase.cjs
+
+.playwright-mcp/

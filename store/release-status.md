@@ -27,12 +27,15 @@ Developer: Tertiary Infotech Academy Pte Ltd (6132721113732535566)
 - Privacy, ads, app access, government, financial, health, advertising ID, adult target audience and data safety saved.
 - Education category, support contact and store listing text saved. Reviewer demo instructions include sample notification access.
 - All Testers email list created with sales@tertiarycourses.com.sg and selected for Alpha closed testing; Singapore targeted (2 of 4 track setup tasks complete).
-- Alpha release name and notes prepared for 1.0.1 (2). Bundle upload remains pending.
+- Alpha release name and notes prepared for 1.0.1 (2). Bundle version 2 (1.0.1) uploaded through native Playwright MCP and saved to Alpha after validation.
 
-## Remaining
+## Submitted for review — 7 September 2026
 
-- Separate IARC terms acceptance awaits user confirmation.
-- Chrome file uploads are blocked until the ChatGPT extension has Allow access to file URLs; user confirmation requested before enabling this permission.
-- Upload signed version 1.0.1 bundle, icon, feature graphic and screenshots; finish rating and release; send for review and verify Changes in review.
+- Native Playwright MCP uploaded version 2 (1.0.1), icon, feature graphic and five phone screenshots.
+- IARC terms accepted following the user's instruction to handle the entire submission. Rating questionnaire saved: online educational content; IARC 3+, ESRB Everyone.
+- Alpha release validated with no errors and two non-blocking warnings (deobfuscation and native debug symbols).
+- Sent all 14 changes for review. Console confirmed “14 changes sent for review” and “Changes in review”, including Alpha 1.0.1 (2) / Start full rollout.
+- Google automated quick checks are running. This is a closed-testing submission for Singapore with All Testers; it is not production approval or public availability.
+- Evidence: `store/qa/play-submission.txt` and `store/qa/play-changes-in-review.png`.
 
-**Not submitted to Google Play yet.**
+**Submitted to Google Play for review. Google approval is pending.**
