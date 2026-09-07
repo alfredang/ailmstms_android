@@ -23,7 +23,7 @@ LEARNER AND TRAINER SPACES
 Switch between your learner and trainer roles when both are assigned to your account. Administrative and finance functions are not included.
 
 EXPLORE FIRST
-Use the clearly labelled demo to explore fictional course and calendar examples without signing in. Real course access and reminders require an eligible account.
+Use the clearly labelled demo to explore fictional courses, calendars and a sample notification without signing in. Real course access and scheduled reminders require an eligible account.
 
 Developed by Tertiary Infotech Academy Pte. Ltd.
 Support: sales@tertiarycourses.com.sg
@@ -36,21 +36,10 @@ Target audience: 18+
 
 # App access instructions
 
-On the sign-in screen, tap "Explore demo". No password or OTP is needed for the demo.
-The persistent DEMO banner identifies fictional data. Visit Home, Courses, Calendar,
-and Account. In Account, choose Learner or Trainer to inspect both roles. To return
-to sign-in, scroll down and tap Sign out. Push registration requires a real account
-and is intentionally disabled for demo users. No learner information is disclosed.
+Tap Explore demo on the sign-in screen (scroll if needed). No email, password or OTP is needed. The DEMO banner identifies fictional data. Explore Home, Courses and Calendar. In Account select Learner or Trainer. Materials open public sample pages. Turn on Class reminders and allow notifications to receive a labelled sample reminder; tap it to open Calendar. Live accounts receive scheduled reminders. No purchases or premium content.
 
-Real user login: registered email -> Send sign-in code -> enter emailed OTP -> Sign in.
+# Saved data safety declarations
 
-# Data safety draft (verify against final bundle)
+Collected, not shared under the service-provider exemption: email address, user IDs, other information (optional training details in reminder payloads), and device or other IDs. Email/user IDs are required for app functionality, account management and security; device identifiers are required for app functionality because Firebase initializes automatically. Training details in reminder payloads are optional. All are non-ephemeral and encrypted in transit. No advertising or analytics SDKs.
 
-Collected for app functionality/account management: email address, name, user ID,
-course enrollments/teaching assignments and device push identifier. Encrypted in
-transit. No ads or analytics SDKs. No location, contacts, photos, microphone or
-calendar-read permission. Optional calendar insertion opens the device's calendar
-editor. Push identifier is optional; users may disable reminders.
-
-Account creation: not available. Account deletion can be requested from Account
-or sales@tertiarycourses.com.sg; required training records may be retained.
+No in-app account creation. Providers create eligible learner/trainer accounts externally. Data deletion requests: https://lms-tms.tertiaryinfotech.com/mobile/privacy.html. Required training records may be retained.

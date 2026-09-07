@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.tertiaryinfotech.ailmstms.ModelsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-06T18:23:06.024Z" hostname="Alfreds-MacBook-Pro-2.local" time="0.499">
+<testsuite name="com.tertiaryinfotech.ailmstms.ModelsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-07T01:19:40.083Z" hostname="Alfreds-MacBook-Pro-2.local" time="0.055">
   <properties/>
-  <testcase name="roleFilterRejectsAdministrativeAccounts" classname="com.tertiaryinfotech.ailmstms.ModelsTest" time="0.328"/>
-  <testcase name="resourceLinksRejectUnsafeSchemes" classname="com.tertiaryinfotech.ailmstms.ModelsTest" time="0.024"/>
-  <testcase name="singaporeTimesAreIndependentOfPhoneTimezone" classname="com.tertiaryinfotech.ailmstms.ModelsTest" time="0.138"/>
-  <testcase name="invalidSessionIsSkipped" classname="com.tertiaryinfotech.ailmstms.ModelsTest" time="0.0"/>
+  <testcase name="roleFilterRejectsAdministrativeAccounts" classname="com.tertiaryinfotech.ailmstms.ModelsTest" time="0.031"/>
+  <testcase name="resourceLinksRejectUnsafeSchemes" classname="com.tertiaryinfotech.ailmstms.ModelsTest" time="0.007"/>
+  <testcase name="singaporeTimesAreIndependentOfPhoneTimezone" classname="com.tertiaryinfotech.ailmstms.ModelsTest" time="0.015"/>
+  <testcase name="invalidSessionIsSkipped" classname="com.tertiaryinfotech.ailmstms.ModelsTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

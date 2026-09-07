@@ -51,7 +51,7 @@ Includes design, Play submission, automatic release and Feedback/About guidance.
 
 ## Release
 
-Package: `com.tertiaryinfotech.ailmstms` · version 1.0.0 (1) · min SDK 26 · target SDK 36.
+Package: `com.tertiaryinfotech.ailmstms` · version 1.0.1 (2) · min SDK 26 · target SDK 36.
 Store copy and assets are in `store/`; release notes are in `CHANGELOG.md` and
 `distribution/whatsnew/`. See `store/release-status.md` for verified submission state.
 

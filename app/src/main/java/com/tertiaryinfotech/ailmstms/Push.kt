@@ -37,3 +37,12 @@ class ClassMessagingService:FirebaseMessagingService() {
   getSystemService(NotificationManager::class.java).notify(id.hashCode(),NotificationCompat.Builder(this,"class_reminders").setSmallIcon(com.tertiaryinfotech.ailmstms.R.drawable.ic_notification).setContentTitle(message.data["title"]?:"Upcoming class").setContentText(message.data["body"]?:"Open your calendar for class details.").setStyle(NotificationCompat.BigTextStyle().bigText(message.data["body"])).setContentIntent(pending).setAutoCancel(true).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).build())
  }
 }
+
+// A clearly labelled local preview exercises the notification UI without using real accounts.
+object DemoNotifications {
+ fun show(context:Context) {
+  if(Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return
+  val pending=PendingIntent.getActivity(context,260901,Intent(context,MainActivity::class.java).putExtra("openCalendar",true),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+  context.getSystemService(NotificationManager::class.java).notify(260901,NotificationCompat.Builder(context,"class_reminders").setSmallIcon(R.drawable.ic_notification).setContentTitle("DEMO · Upcoming class").setContentText("Sample reminder: Building AI Applications in 3 days. Open your class calendar.").setContentIntent(pending).setAutoCancel(true).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).build())
+ }
+}

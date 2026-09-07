@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1] — 2026-09-07 · versionCode 2
+
+### Added
+- Demo reminder preview lets reviewers test notification permissions and opening the calendar without OTP or private learner data.
+
+### Play submission
+- Pending initial closed-testing review.
+
 ## [1.0.0] — 2026-09-07 · versionCode 1
 
 ### Added

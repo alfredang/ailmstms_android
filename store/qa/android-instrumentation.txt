@@ -1,5 +1,6 @@
+
 com.tertiaryinfotech.ailmstms.AppFlowTest:.
 
-Time: 12.2
+Time: 23.403
 
 OK (1 test)
