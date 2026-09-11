@@ -2,6 +2,8 @@
 
 Kotlin and Jetpack Compose companion for Tertiary Infotech Academy learners and trainers.
 
+[![Download from Google Play Store](https://img.shields.io/badge/Download_from-Google_Play_Store-414141?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.tertiaryinfotech.ailmstms)
+
 - Email OTP for existing accounts, with encrypted local session storage.
 - Personal courseware and monthly class calendar, displayed in Singapore time.
 - Optional Firebase reminders three days and one day before each class.
@@ -10,7 +12,7 @@ Kotlin and Jetpack Compose companion for Tertiary Infotech Academy learners and 
 
 ## App preview
 
-<img src="store/screenshots/files/03-courseware.png" alt="Native Android courseware screen with demo materials" width="270">
+<img src="screenshot.png" alt="Native Android courseware screen with demo materials" width="270">
 
 ## Build
 
