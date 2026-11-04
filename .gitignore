@@ -27,3 +27,7 @@ app/google-services.json
 /scripts/configure-firebase.cjs
 
 .playwright-mcp/
+
+# Secrets, local config, build output, archives and source material — never pushed
+*.zip
+**/reference/
