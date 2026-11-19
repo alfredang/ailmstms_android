@@ -1,5 +1,13 @@
 # TIA TMS Android release status
 
+
+## Production 1.1.0 (5) — 19 November 2026
+
+- Committed through the Android Publisher API with the shared service account (edit 17972305667341637043): bundle versionCode 5, production release "1.1.0 (5)" status completed, listing title TIA TMS, new icon and 8 phone screenshots.
+- Read-back after commit: production = 1.1.0 (5); listing title = TIA TMS. Google review of the update is pending; public availability is not yet confirmed.
+- Ownership on the corporate account was taken from this file's earlier record (developer 6132721113732535566); the console was not opened in this session.
+- Data safety form not updated for the new data types listed in `listing.md` (website-only).
+
 ## 1.1.0 (5) — built 19 November 2026, NOT submitted
 
 - Renamed to TIA TMS with the blue theme; class detail, in-app PDF courseware, attendance, assessments, feedback, profile, password sign-in and local class alerts added (see `CHANGELOG.md`).
