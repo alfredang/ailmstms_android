@@ -1,7 +1,17 @@
-# TIA LMS Android release status
+# TIA TMS Android release status
+
+## 1.1.0 (5) — built 19 November 2026, NOT submitted
+
+- Renamed to TIA TMS with the blue theme; class detail, in-app PDF courseware, attendance, assessments, feedback, profile, password sign-in and local class alerts added (see `CHANGELOG.md`).
+- Signed bundle built locally: `app/build/outputs/bundle/release/app-release.aab`.
+- Verified: unit tests, lint (0 errors) and `AppFlowTest` on an Android 16 emulator in demo mode; screenshots refreshed in `screenshots/files/`.
+- Not verified against production: the `/api/mobile/*` routes this version uses were not deployed when it was built. Deploy the backend first, test with a real learner and trainer account, then submit.
+- Before submitting: update the Play listing name/description from `listing.md` and review the Data safety form (new data types listed there).
+
+The sections below record earlier releases under the previous name, TIA LMS.
 
 Package: `com.tertiaryinfotech.ailmstms`
-Version: 1.0.3 (4)
+Live version: 1.0.3 (4) · next: 1.1.0 (5)
 Company Play account: sales@tertiarycourses.com.sg
 Developer: Tertiary Infotech Academy Pte Ltd (6132721113732535566)
 

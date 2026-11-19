@@ -1,4 +1,4 @@
-# AI LMS TMS Android
+# TIA TMS Android (repository: AI LMS TMS)
 
 This is a native Kotlin / Jetpack Compose app for existing learners and trainers only.
 The verified production origin is `https://lms-tms.tertiaryinfotech.com`.
@@ -16,6 +16,11 @@ The `backend/` directory is a separate, ignored AI-LMS-TMS repository checkout.
 Coordinate backend changes with the iOS sibling at `../../iOS/ailmstmsapp` before
 pushing or deploying; both apps share production. Read that repository's
 instructions and verify the tenant before any deployment.
+
+Code lives in `data/` (models, API, demo data), `notify/` (local class alerts) and `ui/` (one
+file per screen). Every signed-in feature goes through the `LmsApi` interface so `DemoApi` can
+answer it without the network; keep the demo complete when adding a screen. Sign-in, dashboard
+and device routes are `/api/android/*`; everything else is the shared `/api/mobile/*` contract.
 
 Verify meaningful changes with model tests, Android lint, and the emulator flow
 in `AppFlowTest`. Use `CHANGELOG.md` for Play release notes. Do not claim Play

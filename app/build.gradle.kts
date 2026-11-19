@@ -7,7 +7,7 @@ android {
  compileSdk=36
  defaultConfig {
   applicationId="com.tertiaryinfotech.ailmstms"; minSdk=26; targetSdk=36
-  versionCode=4; versionName="1.0.3"
+  versionCode=5; versionName="1.1.0"
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
   buildConfigField("String","API_BASE_URL","\"https://lms-tms.tertiaryinfotech.com\"")
  }
@@ -34,6 +34,10 @@ dependencies {
  implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
  implementation("com.google.firebase:firebase-messaging")
  implementation("androidx.work:work-runtime-ktx:2.10.0")
+ // QR scanning through Google Play services: the scanner UI runs outside the app, so no CAMERA permission.
+ implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+ // On-device QR generation for the trainer's check-in code.
+ implementation("com.google.zxing:core:3.5.3")
  testImplementation("junit:junit:4.13.2")
  testImplementation("org.json:json:20240303")
  testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")

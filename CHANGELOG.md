@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.1.0] — 2026-11-19 · versionCode 5
+
+Built against the shared learner/trainer API (`/api/mobile/*`). Not submitted to Google Play yet.
+
+### Changed
+- Renamed to **TIA TMS** (launcher label and all headings). Package, signing key and Firebase project are unchanged.
+- New blue theme: brand blue `#0A3D8F` with a navy `#051C47` header; a lighter blue in dark mode. The academy's own colour is used after sign-in only when it passes a text-contrast check.
+- Source split into `data/`, `notify/` and `ui/` packages.
+
+### Added
+- Light, dark or system theme, saved to the user's profile and applied at launch.
+- Sign in with a password as well as an email code, with a required password change when the academy demands one. Change password from Account.
+- Class detail screen: dates, venue, status, join-online link, sessions with attendance, courseware, assessments, feedback and TRAQOM.
+- Courseware opens inside the app when it is a PDF (Google Drive, Slides and Docs links are converted; up to 60 MB), with zoom, a page indicator and Open in browser. Anything else opens in the browser.
+- Tapping a session on Home or the calendar opens its class.
+- Learner: scan the class QR code to check in (Google code scanner, no camera permission), SSG e-attendance link, submit assessment files with upload progress, remove unsigned files, native course feedback form.
+- Trainer: per-session check-in QR code, manual Present/Absent attendance with an absence reason, SSG attendance QR link, learner results (Competent / Not Yet Competent) with confirmation.
+- Edit profile: name, phone, company and employment status (learner), LinkedIn (trainer).
+- Local class alerts 24 hours before each session and at 08:00 Singapore time on the day, alongside the existing push reminders. Cancelled on sign-out or when reminders are off.
+- The demo covers every new screen with fictional data and makes no network calls.
+
+### Fixed
+- Sessions whose date the server sends as `20261116` are no longer dropped from the calendar.
+
 ## [1.0.3] — 2026-09-07 · versionCode 4
 
 - Replaced the icon with the final user-supplied company T logo and TIA LMS title.
