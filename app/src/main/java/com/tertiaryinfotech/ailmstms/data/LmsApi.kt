@@ -40,6 +40,12 @@ interface LmsApi {
 
     suspend fun feedbackForm(runId: String): FeedbackForm
     suspend fun submitFeedback(runId: String, form: FeedbackForm, answers: Map<String, String>)
+
+    /** The quiz behind a quiz QR code, with the signed-in user's latest attempt. */
+    suspend fun quiz(courseId: String, quizId: String): QuizLoad
+
+    /** Sends the picked option of each question (by question id); the server marks and records the attempt. */
+    suspend fun submitQuiz(courseId: String, quizId: String, answers: Map<String, Int>): QuizResult
 }
 
 const val MAX_UPLOAD_BYTES = 100L * 1024 * 1024

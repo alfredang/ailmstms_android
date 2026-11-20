@@ -237,6 +237,17 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
         request("/api/mobile/feedback", JSONObject().put("runId", runId).put("answers", form.answersJson(answers)))
     }
 
+    // The quiz routes are shared with the web quiz page, so their answers are not wrapped in "data".
+    override suspend fun quiz(courseId: String, quizId: String): QuizLoad =
+        QuizLoad.parse(request("/api/courses/quiz", query = listOf("courseId" to courseId, "quizId" to quizId)))
+
+    override suspend fun submitQuiz(courseId: String, quizId: String, answers: Map<String, Int>): QuizResult {
+        // An attempt is recorded against the signed-in user only; the server rejects any other id.
+        val userId = runCatching { JSONObject(store.profile).text("id") }.getOrDefault("")
+        if (userId.isEmpty()) throw ApiException(400, "Please sign in again to submit this quiz.")
+        return QuizResult.parse(request("/api/courses/submit-quiz", quizSubmission(userId, courseId, quizId, answers)))
+    }
+
     private companion object {
         val JSON = "application/json".toMediaType()
     }

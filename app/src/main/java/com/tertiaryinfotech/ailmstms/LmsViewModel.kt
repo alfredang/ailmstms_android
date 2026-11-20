@@ -23,6 +23,11 @@ import com.tertiaryinfotech.ailmstms.data.LmsApi
 import com.tertiaryinfotech.ailmstms.data.MAX_UPLOAD_BYTES
 import com.tertiaryinfotech.ailmstms.data.Profile
 import com.tertiaryinfotech.ailmstms.data.ProfilePatch
+import com.tertiaryinfotech.ailmstms.data.QuizAttempt
+import com.tertiaryinfotech.ailmstms.data.QuizLink
+import com.tertiaryinfotech.ailmstms.data.QuizLoad
+import com.tertiaryinfotech.ailmstms.data.QuizResult
+import com.tertiaryinfotech.ailmstms.data.parseQuizLink
 import com.tertiaryinfotech.ailmstms.data.RosterEntry
 import com.tertiaryinfotech.ailmstms.data.ThemeMode
 import com.tertiaryinfotech.ailmstms.data.UploadSource
@@ -60,6 +65,10 @@ sealed interface Screen {
 
     data class Feedback(val runId: String, val courseTitle: String) : Screen {
         override val title = "Course feedback"
+    }
+
+    data class Quiz(val courseId: String, val quizId: String) : Screen {
+        override val title = "Quiz"
     }
 
     data object EditProfile : Screen {
@@ -132,6 +141,15 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     private var pdfJob: Job? = null
     private var uploadJob: Job? = null
 
+    // Class quiz. [pendingQuiz] is a scanned quiz waiting for the user to sign in.
+    private val quizHost: String = runCatching { java.net.URI(BuildConfig.API_BASE_URL).host }.getOrNull().orEmpty()
+    var pendingQuiz by mutableStateOf<QuizLink?>(null); private set
+    var quizState by mutableStateOf<Load<QuizLoad>>(Load.Idle); private set
+    val quizAnswers = mutableStateMapOf<String, Int>()
+    var quizIndex by mutableStateOf(0); private set
+    var quizStarted by mutableStateOf(false); private set
+    var quizResult by mutableStateOf<QuizResult?>(null); private set
+
     init {
         if (repo.store.token.isNotEmpty()) {
             profile = runCatching { Profile.parse(JSONObject(repo.store.profile)) }.getOrNull()
@@ -182,6 +200,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         feedbackState = Load.Idle
         profileState = Load.Idle
         pdfState = Load.Idle
+        resetQuiz()
         upload = null
         result = null
         formError = null
@@ -243,6 +262,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         brandColor = ""
         error = null
         stack.clear()
+        openPendingQuiz()
         action { dashboard = demo.dashboard(role) }
     }
 
@@ -273,6 +293,8 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         password = ""
         stack.clear()
         if (mustChangePassword) return
+        // Before the classes are fetched, so a scanned quiz opens even if that fetch fails.
+        openPendingQuiz()
         dashboard = repo.dashboard(role)
         loadProfileQuietly()
     }
@@ -287,6 +309,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun logout() = action {
         if (!isDemo) runCatching { repo.logout() }
+        pendingQuiz = null
         endSession()
     }
 
@@ -406,7 +429,10 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
             mustChangePassword = false
             notice = "Password changed"
             if (stack.lastOrNull() == Screen.ChangePassword) stack.removeAt(stack.lastIndex)
-            if (forced) refresh()
+            if (forced) {
+                refresh()
+                openPendingQuiz()
+            }
         }
     }
 
@@ -414,8 +440,15 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun back(): Boolean {
         if (stack.isEmpty()) return false
+        // Inside a quiz, Back first steps to the previous question.
+        if (stack.last() is Screen.Quiz && quizStarted && quizResult == null && quizIndex > 0) {
+            quizIndex--
+            formError = null
+            return true
+        }
         val top = stack.removeAt(stack.lastIndex)
         formError = null
+        if (top is Screen.Quiz) resetQuiz()
         if (top is Screen.Pdf) {
             pdfJob?.cancel()
             pdfState = Load.Idle
@@ -465,6 +498,11 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun checkIn(code: String) {
         if (code.isBlank()) return
+        // The same scanner reads a quiz QR code: open the quiz instead of treating it as a check-in.
+        parseQuizLink(code, quizHost)?.let {
+            openQuiz(it)
+            return
+        }
         work(onError = { result = ResultMessage("Check-in not recorded", it, false) }) {
             val answer = api.checkIn(code)
             val where = listOf(answer.course, answer.session).filter { it.isNotBlank() }.joinToString(" · ")
@@ -618,6 +656,105 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
                 classState = Load.Ready(it.copy(feedback = it.feedback?.copy(submitted = true)))
                 loadClass(it.id, quiet = true)
             }
+        }
+    }
+
+    // ---------------------------------------------------------------- class quiz
+
+    /** A link the app was opened with. Only quiz links are registered, so anything else is reported. */
+    fun openLink(url: String) {
+        val link = parseQuizLink(url, quizHost)
+        if (link == null) notice = "This quiz link is not valid. Scan the QR code again." else openQuiz(link)
+    }
+
+    /** Opens the quiz now, or keeps it until the user has signed in (and set a new password if required). */
+    fun openQuiz(link: QuizLink) {
+        if (profile == null || mustChangePassword) {
+            pendingQuiz = link
+            return
+        }
+        pendingQuiz = null
+        stack.removeAll { it is Screen.Quiz }
+        stack.add(Screen.Quiz(link.courseId, link.quizId))
+        loadQuiz(link.courseId, link.quizId)
+    }
+
+    private fun openPendingQuiz() {
+        pendingQuiz?.let { openQuiz(it) }
+    }
+
+    private fun resetQuiz() {
+        quizState = Load.Idle
+        quizAnswers.clear()
+        quizIndex = 0
+        quizStarted = false
+        quizResult = null
+    }
+
+    fun loadQuiz(courseId: String, quizId: String) {
+        resetQuiz()
+        quizState = Load.Loading
+        formError = null
+        viewModelScope.launch {
+            try {
+                val loaded = api.quiz(courseId, quizId)
+                if (stack.none { it is Screen.Quiz && it.courseId == courseId && it.quizId == quizId }) return@launch
+                if (loaded.quiz.questions.isEmpty()) {
+                    quizState = Load.Failed("This quiz has no questions yet. Ask your trainer to check it.")
+                    return@launch
+                }
+                // A learner with an earlier attempt sees that score first and chooses to retake.
+                quizStarted = loaded.previous == null
+                quizState = Load.Ready(loaded)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val ended = e is ApiException && e.sessionEnded
+                val message = failure(e)
+                // A session that has ended sends the user to sign-in; the quiz reopens afterwards.
+                if (ended) pendingQuiz = QuizLink(courseId, quizId) else if (profile != null) quizState = Load.Failed(message)
+            }
+        }
+    }
+
+    /** Starts the questions from the first one, discarding any picks (used by Retake). */
+    fun startQuiz() {
+        quizAnswers.clear()
+        quizIndex = 0
+        quizResult = null
+        formError = null
+        quizStarted = true
+    }
+
+    fun pickQuizOption(questionId: String, option: Int) {
+        if (working || quizResult != null) return
+        quizAnswers[questionId] = option
+        formError = null
+    }
+
+    fun nextQuizQuestion() {
+        val quiz = (quizState as? Load.Ready)?.value?.quiz ?: return
+        val question = quiz.questions.getOrNull(quizIndex) ?: return
+        if (question.id !in quizAnswers) {
+            formError = "Choose an answer to continue."
+            return
+        }
+        if (quizIndex < quiz.questions.lastIndex) quizIndex++
+    }
+
+    fun submitQuiz(screen: Screen.Quiz) {
+        val loaded = (quizState as? Load.Ready)?.value ?: return
+        val missing = loaded.quiz.questions.indexOfFirst { it.id !in quizAnswers }
+        if (missing >= 0) {
+            quizIndex = missing
+            formError = "Choose an answer to continue."
+            return
+        }
+        formError = null
+        work(onError = { formError = it }) {
+            val marked = api.submitQuiz(screen.courseId, screen.quizId, quizAnswers.toMap())
+            quizResult = marked
+            quizState = Load.Ready(loaded.copy(previous = QuizAttempt(marked.score, marked.total, marked.completedAt)))
         }
     }
 

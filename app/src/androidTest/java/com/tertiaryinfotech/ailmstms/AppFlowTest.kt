@@ -1,7 +1,9 @@
 package com.tertiaryinfotech.ailmstms
 
 import android.app.NotificationManager
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.SystemClock
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
@@ -19,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.platform.app.InstrumentationRegistry
+import com.tertiaryinfotech.ailmstms.data.DemoApi
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
@@ -71,7 +74,41 @@ class AppFlowTest {
         compose.onNodeWithText("Sign in with password").performScrollTo().performClick()
         compose.onNodeWithText("Password").assertExists()
         compose.onNodeWithText("Sign in with an email code instead").performScrollTo().performClick()
+
+        // A scanned quiz QR code while signed out: the quiz is kept, and opens right after sign-in.
+        val quizLink = "https://lms-tms.tertiaryinfotech.com/quiz/${DemoApi.QUIZ_COURSE_ID}/${DemoApi.QUIZ_ID}"
+        val launchIntent = compose.activity.intent
+        compose.activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(quizLink)).setPackage(compose.activity.packageName))
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("quiz-pending")).fetchSemanticsNodes().isNotEmpty() }
+        // The test rule follows the activity by its launch intent, which onNewIntent has just replaced.
+        compose.runOnUiThread { compose.activity.intent = launchIntent }
+        compose.onNodeWithText("Send sign-in code").assertExists()
         compose.onNodeWithText("Explore demo").performScrollTo().performClick()
+        waitForText("Question 1 of 3")
+        compose.onNodeWithText("Day 1 recap quiz").assertExists()
+        compose.onNodeWithText("Next").assertIsNotEnabled()
+        compose.onNodeWithText("The next token").performClick()
+        capture("14-quiz")
+        compose.onNodeWithText("Next").performClick()
+        waitForText("Question 2 of 3")
+        compose.onNodeWithText("Typing in capital letters").performClick()
+        compose.onNodeWithText("Previous").performClick()
+        waitForText("Question 1 of 3")
+        compose.onNodeWithText("Next").performClick()
+        compose.onNodeWithText("Next").performClick()
+        waitForText("Question 3 of 3")
+        compose.onNodeWithText("Submit").assertIsNotEnabled()
+        compose.onNodeWithText("Grounding answers in your own documents").performClick()
+        compose.onNodeWithTag("quiz").performScrollToNode(hasText("Submit"))
+        compose.onNodeWithText("Submit").performClick()
+        waitForText("Your score")
+        compose.onNodeWithText("2 / 3").assertExists()
+        compose.onNodeWithText("67% correct").assertExists()
+        capture("15-quiz-result")
+        compose.onNodeWithTag("quiz-result").performScrollToNode(hasText("Incorrect"))
+        compose.onNodeWithTag("quiz-result").performScrollToNode(hasText("Your answer"))
+        compose.onNodeWithTag("quiz-result").performScrollToNode(hasText("Done"))
+        compose.onNodeWithText("Done").performClick()
 
         // Learner home
         waitForText("Hello, Alex")
@@ -85,6 +122,16 @@ class AppFlowTest {
         compose.onNodeWithText("Scan class QR").assertExists()
         compose.onNodeWithText("SSG e-attendance (Singpass)").assertExists()
         capture("03-class")
+
+        // The quiz again, from the class: the last score comes first, with Retake.
+        inClass("Take the sample quiz")
+        compose.onNodeWithText("Take the sample quiz").performClick()
+        waitForText("Your last score")
+        compose.onNodeWithText("2 / 3").assertExists()
+        compose.onNodeWithText("Retake quiz").performClick()
+        waitForText("Question 1 of 3")
+        back()
+        waitForClass()
 
         // Courseware opens in the in-app PDF viewer
         inClass("Learner slides")
@@ -107,6 +154,7 @@ class AppFlowTest {
 
         // Assessments
         inClass("Assessments")
+        compose.waitUntil(8000) { runCatching { compose.onNodeWithTag("class-detail").performScrollToNode(hasText("2 open", substring = true)) }.isSuccess }
         compose.onNode(hasText("Assessments") and hasText("2 open", substring = true)).performClick()
         compose.onNodeWithText("Written Assessment").assertExists()
         compose.onAllNodesWithText("View question paper").onFirst().assertExists()

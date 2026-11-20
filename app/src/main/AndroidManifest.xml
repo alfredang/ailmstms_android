@@ -14,10 +14,22 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Android App Link for the trainer's quiz QR code. Verified against
+                 https://lms-tms.tertiaryinfotech.com/.well-known/assetlinks.json; until that file
+                 lists this app's signing certificate the link keeps opening in the browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="lms-tms.tertiaryinfotech.com" />
+                <data android:pathPrefix="/quiz/" />
             </intent-filter>
         </activity>
         <service

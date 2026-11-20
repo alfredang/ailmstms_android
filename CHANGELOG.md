@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.2.0] — 2026-11-21 · versionCode 6
+
+### Added
+- Scan a quiz QR code to take class quizzes in the app. The trainer's quiz QR code carries `https://lms-tms.tertiaryinfotech.com/quiz/<courseId>/<quizId>`; with the app installed the link opens the quiz in the app (Android App Link, `autoVerify`), otherwise it opens the web quiz page.
+- Quiz screen: one question at a time, pick one option, Next, Submit on the last question, then the score with every question marked and the correct option shown. Retake and Done. A learner who has taken the quiz before sees the last score first, with Retake.
+- A quiz link that arrives while signed out is kept: the normal sign-in is shown and the quiz opens right after sign-in (also after a required password change, and after a session that had expired).
+- The in-app "Scan class QR" scanner also opens a quiz when the code is a quiz QR code.
+- Demo: "Take the sample quiz" on the learner's class, and any quiz link opens the sample quiz. No network calls.
+
+### Changed
+- The main activity is `singleTop`, so a link or reminder opened while the app is running goes to the open app instead of starting a second copy.
+
+### Notes
+- Uses the shared routes `GET /api/courses/quiz` and `POST /api/courses/submit-quiz` with the existing session token. The score is always the server's.
+- The link opens the app without asking only after the server's `/.well-known/assetlinks.json` lists this app's signing certificates (Play App Signing key and upload key; fingerprints in `store/release-status.md`).
+
 ## [1.1.0] — 2026-11-19 · versionCode 5
 
 Built against the shared learner/trainer API (`/api/mobile/*`). Not submitted to Google Play yet.

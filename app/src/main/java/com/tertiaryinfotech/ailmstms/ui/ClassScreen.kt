@@ -44,6 +44,7 @@ import com.tertiaryinfotech.ailmstms.Screen
 import com.tertiaryinfotech.ailmstms.data.ClassDetail
 import com.tertiaryinfotech.ailmstms.data.DemoApi
 import com.tertiaryinfotech.ailmstms.data.DetailSession
+import com.tertiaryinfotech.ailmstms.data.QuizLink
 import com.tertiaryinfotech.ailmstms.data.prettyDay
 
 @Composable
@@ -125,6 +126,16 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
                         "Choose a session below to show its check-in QR code or to mark attendance by hand.",
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+        }
+
+        // The demo has no trainer showing a quiz QR code, so the sample quiz is offered here.
+        if (vm.isDemo && !trainer) {
+            item { SectionTitle("Class quiz") }
+            item {
+                ActionRow(ClipboardIcon, "Take the sample quiz", "In class, scan your trainer's quiz QR code to open it") {
+                    vm.openQuiz(QuizLink(DemoApi.QUIZ_COURSE_ID, DemoApi.QUIZ_ID))
                 }
             }
         }

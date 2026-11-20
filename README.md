@@ -11,6 +11,7 @@ Kotlin and Jetpack Compose companion for Tertiary Infotech Academy learners and 
 - Courseware opens inside the app when it is a PDF (Google Drive, Slides and Docs links included), with zoom and a page indicator; anything else opens in the browser.
 - Monthly class calendar in Singapore time; tapping a session opens its class.
 - Learners: scan the class QR code to check in, open SSG e-attendance, submit assessment files, send course feedback.
+- Class quizzes: scanning the trainer's quiz QR code (`https://lms-tms.tertiaryinfotech.com/quiz/<courseId>/<quizId>`) opens the quiz in the app: one question at a time, then the score with the correct answers, and Retake.
 - Trainers: show a session's check-in QR code, mark attendance by hand, record Competent / Not Yet Competent.
 - Profile editing and a light, dark or system theme saved to the profile.
 - Push reminders three days and one day before each class, plus local alerts 24 hours before and at 08:00 on the day.
@@ -46,7 +47,7 @@ building a distribution bundle. Server credentials must never be placed in the a
 | `MainActivity.kt`, `LmsViewModel.kt`, `Push.kt` | Activity, app state and navigation, application class and FCM service |
 | `data/` | Models, `Repository` (HTTP API), `DemoApi` (fictional data), session store, link rules, PDF download, brand colour check |
 | `notify/` | Local class alerts: pure planning (`AlertPlanner`) and WorkManager scheduling (`ClassAlerts`) |
-| `ui/` | Theme and one file per screen: sign-in, tabs, class, PDF viewer, attendance, assessments, feedback, profile |
+| `ui/` | Theme and one file per screen: sign-in, tabs, class, PDF viewer, attendance, assessments, feedback, quiz, profile |
 
 ## Backend
 
@@ -59,6 +60,13 @@ backend repository; the same session token works on both. Assessment files are u
 academy's Google Drive through `/api/upload/google-drive`. **Release 1.1.0 only after those
 routes are deployed**: without them the app still signs in and lists classes, but class detail
 falls back to the basic dashboard copy.
+
+Class quizzes (1.2.0) use the routes the web quiz page uses, `GET /api/courses/quiz` and
+`POST /api/courses/submit-quiz`, with the same session token. The quiz link is an Android App
+Link: the manifest claims `https://lms-tms.tertiaryinfotech.com/quiz/…` with `autoVerify`, and
+the server must list this app's signing certificates in `/.well-known/assetlinks.json` (it is
+built from the tenant's settings) for the link to open the app without a chooser. Check with
+`adb shell pm get-app-links com.tertiaryinfotech.ailmstms`.
 
 The server owns push reminder scheduling and rechecks current assignments, enrollments and
 account/session status. A `401` from any route signs the user out.
@@ -78,7 +86,7 @@ Includes design, Play submission, automatic release and Feedback/About guidance.
 
 ## Release
 
-Package: `com.tertiaryinfotech.ailmstms` · version 1.1.0 (5) · min SDK 26 · target SDK 36.
+Package: `com.tertiaryinfotech.ailmstms` · version 1.2.0 (6) · min SDK 26 · target SDK 36.
 Store copy and assets are in `store/`; release notes are in `CHANGELOG.md` and
 `distribution/whatsnew/`. See `store/release-status.md` for verified submission state.
 

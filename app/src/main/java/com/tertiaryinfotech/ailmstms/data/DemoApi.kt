@@ -203,7 +203,36 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
         if (runId != "demo-data") feedbackSent = true
     }
 
+    private var quizAttempt: QuizAttempt? = null
+
+    /** Any quiz link opens the same sample quiz in the demo. */
+    override suspend fun quiz(courseId: String, quizId: String): QuizLoad {
+        delay(pause)
+        return QuizLoad(QUIZ.copy(id = quizId, courseId = courseId), quizAttempt)
+    }
+
+    override suspend fun submitQuiz(courseId: String, quizId: String, answers: Map<String, Int>): QuizResult {
+        delay(pause)
+        val marks = QUIZ.questions.map { q -> QuizMark(q.id, answers[q.id] == q.correctIndex, q.correctIndex, answers[q.id]) }
+        val done = Instant.now().toString()
+        quizAttempt = QuizAttempt(marks.count { it.correct }, marks.size, done)
+        return QuizResult(marks.count { it.correct }, marks.size, done, marks)
+    }
+
     companion object {
+        /** The link a quiz QR code would carry; used to open the sample quiz from the demo class. */
+        const val QUIZ_COURSE_ID = "00000000-0000-4000-8000-000000000001"
+        const val QUIZ_ID = "demo-quiz"
+
+        private val QUIZ = Quiz(
+            QUIZ_ID, QUIZ_COURSE_ID, "Day 1 recap quiz", "Building AI Applications", "DEMO · AI-101",
+            listOf(
+                QuizQuestion("q1", "What does a large language model predict when it writes an answer?", listOf("The next token", "The user's password", "The size of the database", "The network speed"), 0),
+                QuizQuestion("q2", "Which practice most improves the quality of a model's answer?", listOf("Typing in capital letters", "Giving clear context and an example", "Asking the same question twice", "Using a shorter username"), 1),
+                QuizQuestion("q3", "What is retrieval-augmented generation (RAG) used for?", listOf("Making the screen brighter", "Compressing images", "Grounding answers in your own documents", "Encrypting the device"), 2),
+            ),
+        )
+
         private const val SAMPLE = "https://lms-tms.tertiaryinfotech.com/mobile"
         private const val TRAQOM = "$SAMPLE/support.html"
 

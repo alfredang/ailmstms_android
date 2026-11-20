@@ -53,3 +53,22 @@ fun pdfCandidates(url: String): List<String> {
 /** The checked link the Drive upload returns: only Google Drive file links are recorded. */
 fun isDriveLink(url: String): Boolean =
     isSafeLink(url) && runCatching { URI(url).host.lowercase() in listOf("drive.google.com", "docs.google.com") }.getOrDefault(false)
+
+/** A class quiz named by the link in the trainer's quiz QR code. */
+data class QuizLink(val courseId: String, val quizId: String)
+
+private val QUIZ_ID = Regex("^[A-Za-z0-9._~-]{1,100}$")
+
+/**
+ * Reads `https://<host>/quiz/<courseId>/<quizId>`, the link behind a quiz QR code. Anything else
+ * (another host, http, extra path parts, odd characters) is not a quiz link and gives null.
+ */
+fun parseQuizLink(url: String?, host: String): QuizLink? {
+    if (url.isNullOrBlank() || !isSafeLink(url.trim())) return null
+    val uri = runCatching { URI(url.trim()) }.getOrNull() ?: return null
+    if (!uri.host.equals(host, ignoreCase = true) || (uri.port != -1 && uri.port != 443)) return null
+    val parts = uri.rawPath.orEmpty().split('/').filter { it.isNotEmpty() }
+    if (parts.size != 3 || parts[0] != "quiz") return null
+    if (!QUIZ_ID.matches(parts[1]) || !QUIZ_ID.matches(parts[2])) return null
+    return QuizLink(parts[1], parts[2])
+}

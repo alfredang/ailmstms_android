@@ -1,0 +1,12 @@
+edit 17962943955624144722
+before {'production': [('1.1.0 (5)', 'completed', ['5'])], 'beta': [], 'alpha': [('1.0.3 (4)', 'completed', ['4'])], 'internal': []}
+bundle upload 200 {'versionCode': 6, 'sha256': 'ca6dc9dad029636e99dc6b97d46d48b09dd31759dbb8359e2143f07c825f2f49'}
+track update 200 
+validate 200 ok
+commit 200 {
+  "id": "17962943955624144722",
+  
+}
+
+readback {'production': [('1.2.0 (6)', 'completed', ['6'])], 'beta': [], 'alpha': [('1.0.3 (4)', 'completed', ['4'])], 'internal': []}
+discard readback edit 204

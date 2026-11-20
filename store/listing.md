@@ -83,4 +83,10 @@ Review the Data safety form before releasing 1.1.0. This version adds:
 
 Still true: encrypted in transit; no data sold; no advertising or analytics SDKs; not shared with third parties beyond service providers. The app requests no camera, storage, location or contacts permission.
 
+## Changes to declare for 1.2.0
+
+- **App activity: Other user-generated content** now also covers class quiz answers and scores (collected, optional, app functionality). Same category as the feedback answers listed for 1.1.0; no new permission and no new SDK.
+- The store listing text and screenshots were not changed for 1.2.0. Demo screenshots of the quiz are in `store/screenshots/files/14-quiz.png` and `15-quiz-result.png`.
+- Reviewer path: Explore demo → Courses → Building AI Applications → Take the sample quiz.
+
 No in-app account creation. Providers create eligible learner/trainer accounts externally. Data deletion requests: https://lms-tms.tertiaryinfotech.com/mobile/privacy.html. Required training records may be retained.

@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -144,6 +145,14 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
                 }
             }
             if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (vm.pendingQuiz != null && (!signedIn || gated)) {
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+                    Text(
+                        if (gated) "Set your new password to open the class quiz." else "Sign in to open the class quiz. It opens right after you sign in.",
+                        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).testTag("quiz-pending"),
+                    )
+                }
+            }
             vm.error?.let { message ->
                 Surface(color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer) {
                     Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -162,6 +171,7 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
                         is Screen.Assessments -> AssessmentsScreen(vm, top)
                         is Screen.Attendance -> AttendanceScreen(vm, top)
                         is Screen.Feedback -> FeedbackScreen(vm, top)
+                        is Screen.Quiz -> QuizScreen(vm, top)
                         Screen.EditProfile -> ProfileScreen(vm)
                         Screen.ChangePassword -> PasswordScreen(vm, forced = false)
                     }

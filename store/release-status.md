@@ -1,6 +1,19 @@
 # TIA TMS Android release status
 
 
+## Production 1.2.0 (6) — 21 November 2026
+
+- Adds class quizzes opened from the trainer's quiz QR code (Android App Link for `https://lms-tms.tertiaryinfotech.com/quiz/<courseId>/<quizId>`); see `CHANGELOG.md`.
+- Committed through the Android Publisher API with the shared service account (edit 17962943955624144722): bundle versionCode 6 (SHA-256 `ca6dc9da…825f2f49`), production release "1.2.0 (6)" status completed, en-US release notes from `distribution/whatsnew/`. The edit was validated in a dry run first (edit 16726226703100140310, discarded).
+- Read-back after commit: production = 1.2.0 (6) completed; alpha unchanged at 1.0.3 (4). Google review of the update is pending; public availability is not yet confirmed. Evidence: `store/qa-1.2.0-publish.txt`.
+- Ownership on the corporate account was taken from this file's earlier record (developer 6132721113732535566); the console was not opened in this session.
+- Verified before release: 67 unit tests (0 failures), lint 0 errors (21 warnings), `AppFlowTest` OK on an Android 16 emulator (TCLMS_Phone, demo mode) including the quiz link while signed out, the quiz, the result and Retake. The link was also opened with `adb shell am start -a android.intent.action.VIEW -d …/quiz/<uuid>/<id>`: cold start signed out (sign-in shown, quiz opened after entering the demo) and with the app already open (delivered to the running activity).
+- Not verified: the quiz against production with a real learner account (no test account in this repository; the request and response handling is covered by `QuizTest` against a mock server, and the unauthenticated route answers 401), and automatic link verification. `https://lms-tms.tertiaryinfotech.com/.well-known/assetlinks.json` returned 404 `{"success":false,"error":"Not configured"}` at release time, and the emulator reported domain state 1024 (not verified). Until the server lists the certificates below the link opens the browser (or a chooser), not the app.
+- Signing certificates (SHA-256) for `assetlinks.json`:
+  - Play App Signing key (what Play-installed copies are signed with; Publisher API `generatedApks` for versionCodes 5 and 6): `F3:2D:07:F9:0D:F2:F7:B9:62:0E:02:B7:6E:1A:3F:E3:47:7E:A6:16:97:4E:8E:A3:AF:F9:BD:56:DD:10:D7:E1`
+  - Upload key (`keystore/upload.jks`, alias `ailmstms`; locally installed release builds): `B3:3F:68:00:9F:DF:1A:39:49:F4:D6:98:C6:50:F5:91:EF:B0:E9:19:EA:5E:24:EA:1A:FA:85:01:91:F7:8D:36`
+- Data safety form still not updated (website-only): the 1.1.0 items in `listing.md` plus quiz answers and scores.
+
 ## Production 1.1.0 (5) — 19 November 2026
 
 - Committed through the Android Publisher API with the shared service account (edit 17972305667341637043): bundle versionCode 5, production release "1.1.0 (5)" status completed, listing title TIA TMS, new icon and 8 phone screenshots.
@@ -19,7 +32,7 @@
 The sections below record earlier releases under the previous name, TIA LMS.
 
 Package: `com.tertiaryinfotech.ailmstms`
-Live version: 1.0.3 (4) · next: 1.1.0 (5)
+Latest on the production track: 1.2.0 (6)
 Company Play account: sales@tertiarycourses.com.sg
 Developer: Tertiary Infotech Academy Pte Ltd (6132721113732535566)
 

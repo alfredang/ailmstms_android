@@ -405,3 +405,80 @@ data class FeedbackForm(
         }
     }
 }
+
+// ---------------------------------------------------------------- class quiz
+
+data class QuizQuestion(val id: String, val question: String, val options: List<String>, val correctIndex: Int)
+
+data class Quiz(
+    val id: String,
+    val courseId: String,
+    val title: String,
+    val courseTitle: String,
+    val courseCode: String,
+    val questions: List<QuizQuestion>,
+)
+
+/** The learner's latest finished attempt, as the server recorded it. */
+data class QuizAttempt(val score: Int, val total: Int, val completedAt: String)
+
+/** A quiz with the signed-in user's latest attempt, if there is one. */
+data class QuizLoad(val quiz: Quiz, val previous: QuizAttempt?) {
+    companion object {
+        fun parse(o: JSONObject): QuizLoad {
+            val q = o.optJSONObject("quiz") ?: throw ApiException(502, "The service sent an unexpected answer. Please try again.", fromApi = false)
+            val questions = q.array("questions").objects().map { item ->
+                val options = item.array("options").let { a -> (0 until a.length()).map { a.optString(it) } }
+                QuizQuestion(item.text("id"), item.text("question"), options, item.optInt("correctIndex", -1))
+            }.filter { it.id.isNotEmpty() && it.options.size >= 2 }
+            val quiz = Quiz(q.text("id"), q.text("courseId"), q.text("title").ifBlank { "Quiz" }, q.text("courseTitle"), q.text("courseCode"), questions)
+            val previous = o.optJSONObject("previous")?.let { QuizAttempt(it.optInt("score"), it.optInt("total"), it.text("completedAt")) }
+            return QuizLoad(quiz, previous)
+        }
+    }
+}
+
+/** How one question was marked. [selectedIndex] is null when it was left unanswered. */
+data class QuizMark(val questionId: String, val correct: Boolean, val correctIndex: Int, val selectedIndex: Int?)
+
+/** One question of a marked quiz, ready to show: what was picked and which option is right. */
+data class QuizReview(val question: QuizQuestion, val selectedIndex: Int?, val correctIndex: Int, val correct: Boolean)
+
+/** The server's marking of a submitted quiz. The score is always the server's, never worked out on the phone. */
+data class QuizResult(val score: Int, val total: Int, val completedAt: String, val marks: List<QuizMark>) {
+    val percent: Int get() = if (total > 0) Math.round(100f * score / total) else 0
+
+    /**
+     * The marking lined up with the questions, in the order they were asked. A question the
+     * server did not mark (the quiz was edited mid-attempt) falls back to the learner's own
+     * answer and the answer key the quiz came with.
+     */
+    fun review(quiz: Quiz, answers: Map<String, Int>): List<QuizReview> {
+        val byId = marks.associateBy { it.questionId }
+        return quiz.questions.map { q ->
+            val mark = byId[q.id]
+            if (mark != null) {
+                QuizReview(q, mark.selectedIndex, mark.correctIndex, mark.correct)
+            } else {
+                val selected = answers[q.id]
+                QuizReview(q, selected, q.correctIndex, selected != null && selected == q.correctIndex)
+            }
+        }
+    }
+
+    companion object {
+        fun parse(o: JSONObject) = QuizResult(
+            o.optInt("score"), o.optInt("total"), o.text("completedAt"),
+            o.array("breakdown").objects().map {
+                QuizMark(it.text("questionId"), it.optBoolean("correct"), it.optInt("correctIndex", -1), if (it.isNull("selectedIndex")) null else it.optInt("selectedIndex"))
+            },
+        )
+    }
+}
+
+/** The request body for a quiz submission: answers are keyed by question id. */
+fun quizSubmission(userId: String, courseId: String, quizId: String, answers: Map<String, Int>): JSONObject {
+    val picked = JSONObject()
+    answers.forEach { (questionId, index) -> picked.put(questionId, index) }
+    return JSONObject().put("userId", userId).put("courseId", courseId).put("quizId", quizId).put("answers", picked)
+}
