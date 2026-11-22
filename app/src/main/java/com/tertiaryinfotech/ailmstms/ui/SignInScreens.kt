@@ -1,6 +1,26 @@
 package com.tertiaryinfotech.ailmstms.ui
 
 import android.util.Patterns
+import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,89 +64,155 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.tertiaryinfotech.ailmstms.LmsViewModel
 
+/**
+ * Sign in with an emailed code (the default) or the LMS/TMS password. Layout follows the TIA
+ * house sign-in (same as iOS): app mark, name, one card, quiet links at the foot.
+ */
 @Composable
 fun LoginScreen(vm: LmsViewModel) {
     val context = LocalContext.current
+    val lms = LocalLmsColors.current
+    val prefs = remember { context.getSharedPreferences("signin", Context.MODE_PRIVATE) }
+    var keepEmail by remember { mutableStateOf(prefs.getBoolean("rememberEmail", true)) }
+    LaunchedEffect(Unit) {
+        if (vm.email.isBlank()) prefs.getString("rememberedEmail", null)?.let { vm.email = it }
+    }
     val emailValid = Patterns.EMAIL_ADDRESS.matcher(vm.email.trim()).matches()
+    val primaryEnabled = !vm.busy && emailValid && when {
+        vm.usePassword -> vm.password.isNotEmpty()
+        vm.sent -> vm.otp.length == 6
+        else -> true
+    }
+    fun primary() {
+        if (!primaryEnabled) return
+        if (keepEmail) prefs.edit().putString("rememberedEmail", vm.email.trim()).apply()
+        when {
+            vm.usePassword -> vm.loginWithPassword()
+            vm.sent -> vm.login()
+            else -> vm.sendOtp()
+        }
+    }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        Modifier.fillMaxSize()
+            .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))))
+            .verticalScroll(rememberScrollState()).imePadding().padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(4.dp))
-        Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-            Icon(SchoolIcon, null, Modifier.padding(20.dp).size(48.dp), tint = MaterialTheme.colorScheme.primary)
+        // App mark and name
+        Column(Modifier.padding(top = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                Modifier.size(92.dp).clip(RoundedCornerShape(22.dp))
+                    .background(Brush.verticalGradient(listOf(Color(0xFF0A3D8F), Color(0xFF051C47)))),
+                contentAlignment = Alignment.Center,
+            ) { Text("TIA", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black) }
+            Text("TIA TMS", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Tertiary Infotech Academy", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text("Your training.\nAll in one place.", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-        Text(
-            "Classes, courseware, attendance, assessments and reminders for Tertiary Infotech Academy learners and trainers.",
-            style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        // One role per sign-in. Chosen before signing in (and before entering the demo).
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            val lms = LocalLmsColors.current
-            Text("Sign in as", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().testTag("loginRole")) {
-                Roles.ALL.forEachIndexed { i, role ->
-                    SegmentedButton(
-                        selected = vm.loginRole == role, onClick = { vm.chooseLoginRole(role) }, enabled = !vm.busy,
-                        shape = SegmentedButtonDefaults.itemShape(i, Roles.ALL.size),
-                        icon = {},
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = lms.card, activeContentColor = MaterialTheme.colorScheme.primary, activeBorderColor = lms.cardBorder,
-                            inactiveContainerColor = lms.field, inactiveContentColor = MaterialTheme.colorScheme.onSurface, inactiveBorderColor = lms.cardBorder,
-                        ),
-                        modifier = Modifier.testTag("loginRole-$role"),
-                    ) { Text(Roles.label(role), fontWeight = if (vm.loginRole == role) FontWeight.SemiBold else FontWeight.Normal) }
-                }
-            }
-            Text(
-                if (vm.loginRole == Roles.TRAINER) "See the classes you teach, attendance, payout and training hours."
-                else "See the courses you are taking. Trainers attending a course sign in as a learner.",
-                fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+
         AppCard {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(if (vm.sent) "Check your email" else "Welcome back", style = MaterialTheme.typography.titleLarge)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Sign in", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (vm.sent && !vm.usePassword) "Enter the 6-digit code we emailed you."
+                        else "Enter the email you registered with to continue.",
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // One role per sign-in. Chosen before signing in (and before entering the demo).
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().testTag("loginRole")) {
+                        Roles.ALL.forEachIndexed { i, role ->
+                            SegmentedButton(
+                                selected = vm.loginRole == role, onClick = { vm.chooseLoginRole(role) }, enabled = !vm.busy,
+                                shape = SegmentedButtonDefaults.itemShape(i, Roles.ALL.size),
+                                icon = {},
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = lms.card, activeContentColor = MaterialTheme.colorScheme.primary, activeBorderColor = lms.cardBorder,
+                                    inactiveContainerColor = lms.field, inactiveContentColor = MaterialTheme.colorScheme.onSurface, inactiveBorderColor = lms.cardBorder,
+                                ),
+                                modifier = Modifier.testTag("loginRole-$role"),
+                            ) { Text(Roles.label(role), fontWeight = if (vm.loginRole == role) FontWeight.SemiBold else FontWeight.Normal) }
+                        }
+                    }
+                    Text(
+                        if (vm.loginRole == Roles.TRAINER) "See the classes you teach, attendance, payout and training hours."
+                        else "See the courses you are taking. Trainers attending a course sign in as a learner.",
+                        fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 OutlinedTextField(
-                    vm.email, { vm.email = it }, label = { Text("Registered email address") }, singleLine = true,
-                    enabled = !vm.sent && !vm.busy, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier.fillMaxWidth(),
+                    vm.email, { vm.email = it; if (vm.sent) vm.changeEmail() },
+                    placeholder = { Text("Email") }, singleLine = true, enabled = !vm.busy,
+                    leadingIcon = { Icon(Icons.Filled.Email, null) },
+                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Go),
+                    keyboardActions = KeyboardActions(onGo = { primary() }),
+                    modifier = Modifier.fillMaxWidth().testTag("email"),
                 )
-                when {
-                    vm.usePassword -> {
-                        PasswordField(vm.password, { vm.password = it }, "Password", enabled = !vm.busy)
-                        Button(onClick = vm::loginWithPassword, enabled = emailValid && vm.password.isNotEmpty() && !vm.busy, modifier = Modifier.fillMaxWidth()) {
-                            Text("Sign in")
-                        }
-                        TextButton(onClick = { vm.choosePassword(false) }, enabled = !vm.busy) { Text("Sign in with an email code instead") }
+                if (vm.usePassword) {
+                    PasswordField(vm.password, { vm.password = it }, "LMS/TMS password", enabled = !vm.busy)
+                } else if (vm.sent) {
+                    OutlinedTextField(
+                        vm.otp, { vm.otp = it.filter(Char::isDigit).take(6) },
+                        placeholder = { Text("6-digit code") }, singleLine = true,
+                        leadingIcon = { Icon(Icons.Filled.Lock, null) },
+                        shape = RoundedCornerShape(14.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Go),
+                        keyboardActions = KeyboardActions(onGo = { primary() }),
+                        modifier = Modifier.fillMaxWidth().testTag("otp"),
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Remember my email", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Switch(checked = keepEmail, onCheckedChange = {
+                        keepEmail = it
+                        prefs.edit().putBoolean("rememberEmail", it).apply()
+                        if (!it) prefs.edit().remove("rememberedEmail").apply()
+                    })
+                }
+                Button(
+                    onClick = { primary() }, enabled = primaryEnabled,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = lms.brandFill, contentColor = Color.White),
+                    contentPadding = PaddingValues(vertical = 15.dp),
+                    modifier = Modifier.fillMaxWidth().testTag(if (vm.usePassword) "signIn" else "continue"),
+                ) {
+                    if (vm.busy) CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                    else Icon(Icons.AutoMirrored.Filled.ArrowForward, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (vm.usePassword) "Sign In" else if (vm.sent) "Verify & Sign In" else "Continue",
+                        fontWeight = FontWeight.SemiBold, fontSize = 16.sp,
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    if (!vm.usePassword && vm.sent) {
+                        TextButton(onClick = vm::sendOtp, enabled = !vm.busy) { Text("Send a new code", fontSize = 13.sp) }
+                    } else if (vm.usePassword) {
+                        TextButton(onClick = { openLink(context, "https://lms-tms.tertiaryinfotech.com/") }) { Text("Forgot your password?", fontSize = 13.sp) }
                     }
-                    vm.sent -> {
-                        Text("Enter the 6-digit code sent to your email. Codes expire after 30 minutes.")
-                        OutlinedTextField(
-                            vm.otp, { vm.otp = it.filter(Char::isDigit).take(6) }, label = { Text("One-time code") }, singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), modifier = Modifier.fillMaxWidth(),
-                        )
-                        Button(onClick = vm::login, enabled = vm.otp.length == 6 && !vm.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign in") }
-                        TextButton(onClick = vm::changeEmail, enabled = !vm.busy) { Text("Change email or request another code") }
-                    }
-                    else -> {
-                        Button(onClick = vm::sendOtp, enabled = emailValid && !vm.busy, modifier = Modifier.fillMaxWidth()) { Text("Send sign-in code") }
-                        OutlinedButton(onClick = { vm.choosePassword(true) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-                            Text("Sign in with password")
-                        }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { vm.choosePassword(!vm.usePassword) }, enabled = !vm.busy, modifier = Modifier.testTag("switchMethod")) {
+                        Text(if (vm.usePassword) "Use email code instead" else "Use password instead", fontSize = 13.sp)
                     }
                 }
             }
         }
-        TextButton(onClick = vm::enterDemo, enabled = !vm.busy) { Text("Explore demo") }
-        Text(
-            "Use the email registered with your training provider. Learner and trainer accounts only.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Row {
-            TextButton(onClick = { openLink(context, PRIVACY_URL) }) { Text("Privacy policy") }
-            TextButton(onClick = { openLink(context, SUPPORT_WHATSAPP) }) { Text("Need help?") }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Use the email your training provider registered for your class.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
+            )
+            val quiet = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.Center) {
+                // A look around with sample data, for anyone without an account (and Play review).
+                TextButton(onClick = vm::enterDemo, enabled = !vm.busy, colors = quiet) { Text("Try a demo", fontSize = 13.sp) }
+                TextButton(onClick = { openLink(context, PRIVACY_URL) }, colors = quiet) { Text("Privacy policy", fontSize = 13.sp) }
+                TextButton(onClick = { openLink(context, SUPPORT_WHATSAPP) }, colors = quiet) { Text("Need help?", fontSize = 13.sp) }
+            }
         }
     }
 }
