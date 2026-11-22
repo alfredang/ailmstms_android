@@ -46,6 +46,9 @@ interface LmsApi {
 
     /** Sends the picked option of each question (by question id); the server marks and records the attempt. */
     suspend fun submitQuiz(courseId: String, quizId: String, answers: Map<String, Int>): QuizResult
+
+    /** Trainer: every completed payout for the signed-in user, newest first. */
+    suspend fun payouts(): List<Payout>
 }
 
 const val MAX_UPLOAD_BYTES = 100L * 1024 * 1024

@@ -21,6 +21,7 @@ import com.tertiaryinfotech.ailmstms.data.DemoApi
 import com.tertiaryinfotech.ailmstms.data.FeedbackForm
 import com.tertiaryinfotech.ailmstms.data.LmsApi
 import com.tertiaryinfotech.ailmstms.data.MAX_UPLOAD_BYTES
+import com.tertiaryinfotech.ailmstms.data.Payout
 import com.tertiaryinfotech.ailmstms.data.Profile
 import com.tertiaryinfotech.ailmstms.data.ProfilePatch
 import com.tertiaryinfotech.ailmstms.data.QuizAttempt
@@ -28,6 +29,7 @@ import com.tertiaryinfotech.ailmstms.data.QuizLink
 import com.tertiaryinfotech.ailmstms.data.QuizLoad
 import com.tertiaryinfotech.ailmstms.data.QuizResult
 import com.tertiaryinfotech.ailmstms.data.parseQuizLink
+import com.tertiaryinfotech.ailmstms.data.Roles
 import com.tertiaryinfotech.ailmstms.data.RosterEntry
 import com.tertiaryinfotech.ailmstms.data.ThemeMode
 import com.tertiaryinfotech.ailmstms.data.UploadSource
@@ -43,7 +45,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.File
 
-/** A screen opened on top of the four tabs. */
+/** A screen opened on top of the tabs. */
 sealed interface Screen {
     val title: String
 
@@ -71,10 +73,6 @@ sealed interface Screen {
         override val title = "Quiz"
     }
 
-    data object EditProfile : Screen {
-        override val title = "Edit profile"
-    }
-
     data object ChangePassword : Screen {
         override val title = "Change password"
     }
@@ -94,6 +92,12 @@ data class UploadState(val type: String, val fileName: String, val progress: Flo
 /** A result the user must see and dismiss, such as the answer to a check-in. */
 data class ResultMessage(val title: String, val message: String, val success: Boolean)
 
+/** A material fetched for the share sheet; [title] names it there. */
+data class DownloadedFile(val file: File, val title: String)
+
+/** A download that failed, with the original link so the browser can be offered instead. */
+data class DownloadProblem(val message: String, val url: String)
+
 class LmsViewModel(app: Application) : AndroidViewModel(app) {
     private val lms = app as LmsApplication
     val repo = lms.repo
@@ -104,7 +108,16 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     var profile by mutableStateOf<Profile?>(null); private set
     var userProfile by mutableStateOf<UserProfile?>(null); private set
     var dashboard by mutableStateOf(Dashboard.EMPTY); private set
+    /** The role this sign-in is viewing as. Everything role-specific (tabs, classes, class detail) follows it. */
     var role by mutableStateOf(repo.store.role); private set
+
+    /** The "Sign in as" choice on the sign-in screen. It becomes [role] at sign-in and returns to Learner at sign-out. */
+    var loginRole by mutableStateOf(Roles.LEARNER); private set
+
+    /** The roles offered in the "Viewing as" switcher: more than one only for the owner account. */
+    val availableRoles: List<String>
+        get() = if (isDemo) listOf(role) else Roles.available(profile?.email, profile?.roles.orEmpty(), role)
+    val canSwitchRole: Boolean get() = availableRoles.size > 1
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
     var pushEnabled by mutableStateOf(repo.store.pushEnabled); private set
@@ -137,8 +150,16 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     var formError by mutableStateOf<String?>(null)
     var pdfState by mutableStateOf<Load<File>>(Load.Idle); private set
     var pdfProgress by mutableStateOf<Float?>(null); private set
-    var profileState by mutableStateOf<Load<UserProfile>>(Load.Idle); private set
     private var pdfJob: Job? = null
+
+    // Trainer payouts (the Payout tab). Idle until the tab is first opened.
+    var payoutState by mutableStateOf<Load<List<Payout>>>(Load.Idle); private set
+
+    // Download from the in-app reader: fetched here, handed to the share sheet by the screen.
+    var downloading by mutableStateOf(false); private set
+    var downloaded by mutableStateOf<DownloadedFile?>(null)
+    var downloadProblem by mutableStateOf<DownloadProblem?>(null)
+    private var downloadJob: Job? = null
     private var uploadJob: Job? = null
 
     // Class quiz. [pendingQuiz] is a scanned quiz waiting for the user to sign in.
@@ -154,7 +175,19 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         if (repo.store.token.isNotEmpty()) {
             profile = runCatching { Profile.parse(JSONObject(repo.store.profile)) }.getOrNull()
             userProfile = runCatching { UserProfile.parse(JSONObject(repo.store.userProfile)) }.getOrNull()
-            if (profile == null) repo.store.clear() else refresh()
+            val signedIn = profile
+            if (signedIn == null) {
+                repo.store.clear()
+            } else {
+                // A session from before the "Sign in as" choice keeps the trainer view when the account teaches.
+                val stored = repo.store.loginRole
+                val active = if (stored.isEmpty()) Roles.legacy(signedIn.roles) else Roles.resolve(repo.store.role, signedIn.roles)
+                if (stored.isEmpty()) repo.store.loginRole = active
+                if (repo.store.role != active) repo.store.role = active
+                role = active
+                loginRole = repo.store.loginRole
+                refresh()
+            }
         }
     }
 
@@ -180,10 +213,18 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
             repo.store.clear()
             lms.pdfs.clear()
         }
+        lms.downloads.clear()
         ClassAlerts.cancelAll(lms)
         lms.getSystemService(NotificationManager::class.java).cancelAll()
         pdfJob?.cancel()
         uploadJob?.cancel()
+        downloadJob?.cancel()
+        downloading = false
+        downloaded = null
+        downloadProblem = null
+        payoutState = Load.Idle
+        loginRole = Roles.LEARNER
+        role = Roles.LEARNER
         isDemo = false
         demo = DemoApi()
         profile = null
@@ -198,7 +239,6 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         classState = Load.Idle
         attendanceState = Load.Idle
         feedbackState = Load.Idle
-        profileState = Load.Idle
         pdfState = Load.Idle
         resetQuiz()
         upload = null
@@ -251,11 +291,26 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------------------------------------------------------- sign-in
 
+    fun chooseLoginRole(value: String) {
+        if (value in Roles.ALL) loginRole = value
+    }
+
+    /** Shown once when the sign-in could not give the role that was asked for. */
+    private fun explainRole(chosen: String, given: String) {
+        if (chosen == given) return
+        result = ResultMessage(
+            "Signed in as a ${Roles.label(given).lowercase()}",
+            if (given == Roles.LEARNER) "This account does not teach any classes, so you are signed in as a learner."
+            else "This account is not enrolled as a learner, so you are signed in as a ${Roles.label(given).lowercase()}.",
+            true,
+        )
+    }
+
     fun enterDemo() {
         demo = DemoApi()
         isDemo = true
         pushEnabled = false
-        role = "learner"
+        role = Roles.resolve(loginRole, DemoApi.PROFILE.roles)
         profile = DemoApi.PROFILE
         userProfile = DemoApi.PROFILE_DETAIL
         themeMode = ThemeMode.SYSTEM
@@ -285,9 +340,11 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         error = null
     }
 
-    private suspend fun afterSignIn(signedIn: Profile) {
+    private suspend fun afterSignIn(signedIn: Profile, chosen: String) {
         profile = signedIn
         role = repo.store.role
+        loginRole = role
+        explainRole(chosen, role)
         pushEnabled = repo.store.pushEnabled
         otp = ""
         password = ""
@@ -299,12 +356,16 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         loadProfileQuietly()
     }
 
-    fun login() = action { afterSignIn(repo.login(email.trim().lowercase(), otp)) }
+    fun login() = action {
+        val chosen = loginRole
+        afterSignIn(repo.login(email.trim().lowercase(), otp, chosen), chosen)
+    }
 
     fun loginWithPassword() = action {
-        val signedIn = repo.passwordLogin(email.trim().lowercase(), password)
+        val chosen = loginRole
+        val signedIn = repo.passwordLogin(email.trim().lowercase(), password, chosen)
         mustChangePassword = signedIn.forcePasswordChange
-        afterSignIn(signedIn.profile)
+        afterSignIn(signedIn.profile, chosen)
     }
 
     fun logout() = action {
@@ -322,6 +383,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun refresh() = action {
         dashboard = api.dashboard(role)
+        if (payoutState !is Load.Idle) loadPayouts()
         if (isDemo) return@action
         if (repo.store.pushEnabled) PushSyncWorker.enqueue(lms)
         syncAlerts()
@@ -329,14 +391,34 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         (stack.lastOrNull() as? Screen.ClassRoom)?.let { loadClass(it.id, quiet = true) }
     }
 
+    /** The owner account's "Viewing as" switcher. Every other account keeps the role it signed in with. */
     fun switchRole(value: String) = action {
-        if (profile?.roles?.contains(value) != true || value == role) return@action
+        if (value !in availableRoles || value == role) return@action
         if (!isDemo) repo.store.role = value
         role = value
-        stack.clear()
+        closeAll()
+        payoutState = Load.Idle
         dashboard = Dashboard.EMPTY
         dashboard = api.dashboard(value)
         syncAlerts()
+    }
+
+    // ---------------------------------------------------------------- trainer payouts
+
+    fun loadPayouts() {
+        if (role != Roles.TRAINER) return
+        if (payoutState !is Load.Ready) payoutState = Load.Loading
+        viewModelScope.launch {
+            try {
+                val list = api.payouts()
+                if (role == Roles.TRAINER && profile != null) payoutState = Load.Ready(list)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null) payoutState = Load.Failed(message)
+            }
+        }
     }
 
     fun setPush(enabled: Boolean) = action {
@@ -371,35 +453,16 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun openEditProfile() {
-        stack.add(Screen.EditProfile)
-        loadProfile()
-    }
-
+    /** The Account page shows the cached profile at once and brings it up to date in the background. */
     fun loadProfile() {
-        profileState = userProfile?.let { Load.Ready(it) } ?: Load.Loading
-        viewModelScope.launch {
-            try {
-                val value = api.profile()
-                applyProfile(value)
-                profileState = Load.Ready(value)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                val message = failure(e)
-                if (profileState !is Load.Ready) profileState = Load.Failed(message)
-            }
-        }
+        viewModelScope.launch { loadProfileQuietly() }
     }
 
     fun saveProfile(patch: ProfilePatch) {
         formError = null
         work(onError = { formError = it }) {
-            val value = api.updateProfile(patch)
-            applyProfile(value)
-            profileState = Load.Ready(value)
+            applyProfile(api.updateProfile(patch))
             notice = "Profile saved"
-            if (stack.lastOrNull() == Screen.EditProfile) stack.removeAt(stack.lastIndex)
         }
     }
 
@@ -452,6 +515,8 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         if (top is Screen.Pdf) {
             pdfJob?.cancel()
             pdfState = Load.Idle
+            downloadJob?.cancel()
+            downloading = false
         }
         return true
     }
@@ -787,6 +852,28 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
                 throw e
             } catch (e: Exception) {
                 pdfFallback(screen)
+            }
+        }
+    }
+
+    /**
+     * Download from the reader: fetches the file itself (Drive and Docs links in their download
+     * form) and hands it to the screen, which opens the system share sheet to save or send it.
+     */
+    fun downloadMaterial(screen: Screen.Pdf) {
+        if (downloading) return
+        downloading = true
+        downloadProblem = null
+        downloadJob = viewModelScope.launch {
+            try {
+                val file = if (isDemo) lms.downloads.adopt(screen.name, DemoPdf.create(lms, screen.name)) else lms.downloads.fetch(screen.name, screen.url)
+                if (stack.lastOrNull() == screen) downloaded = DownloadedFile(file, screen.name)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (stack.lastOrNull() == screen) downloadProblem = DownloadProblem(describe(e), screen.url)
+            } finally {
+                downloading = false
             }
         }
     }

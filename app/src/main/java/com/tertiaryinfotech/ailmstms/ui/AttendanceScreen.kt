@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -36,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -59,15 +59,37 @@ fun qrMatrix(text: String): BitMatrix? = runCatching {
 
 /** Always black on white, in both themes, so every phone camera can read it. */
 @Composable
-fun QrCode(text: String, modifier: Modifier = Modifier) {
+fun QrCode(text: String, modifier: Modifier = Modifier, description: String = "Check-in QR code") {
     val matrix = remember(text) { qrMatrix(text) }
-    Canvas(modifier.aspectRatio(1f).background(Color.White).semantics { contentDescription = "Check-in QR code" }) {
+    Canvas(modifier.aspectRatio(1f).background(Color.White).semantics { contentDescription = description }) {
         val bits = matrix ?: return@Canvas
         val cell = size.width / bits.width
         for (y in 0 until bits.height) {
             for (x in 0 until bits.width) {
                 // A hair of overlap hides the seams between neighbouring cells.
                 if (bits[x, y]) drawRect(Color.Black, Offset(x * cell, y * cell), Size(cell + 0.5f, cell + 0.5f))
+            }
+        }
+    }
+}
+
+/**
+ * A link shown to the class as a QR code (the check-in code, the TRAQOM survey), on white in
+ * both themes so every camera can read it. [shareLabel] adds a button that shares the link.
+ */
+@Composable
+fun QrDialog(heading: String, link: String, hint: String, tag: String, shareLabel: String? = null, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(24.dp), color = Color.White) {
+            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(heading, color = Color.Black, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                QrCode(link, Modifier.fillMaxWidth().testTag(tag), description = "$heading code")
+                Text(hint, color = Color(0xFF434E66), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (shareLabel != null) TextButton(onClick = { shareText(context, link, heading) }) { Text(shareLabel, color = Color(0xFF0A3D8F)) }
+                    TextButton(onClick = onDismiss) { Text(if (shareLabel != null) "Done" else "Close", color = Color(0xFF0A3D8F)) }
+                }
             }
         }
     }
@@ -95,7 +117,7 @@ private fun AttendanceContent(vm: LmsViewModel, screen: Screen.Attendance, sheet
         ) {
             item { Heading(screen.label) }
             item {
-                Card {
+                AppCard {
                     Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         SectionTitle("Learner check-in")
                         if (sheet.checkinUrl != null) {
@@ -123,7 +145,7 @@ private fun AttendanceContent(vm: LmsViewModel, screen: Screen.Attendance, sheet
             }
             if (learners.isEmpty()) item { EmptyCard("No learners yet", "Learners appear here once they are enrolled in this class.") }
             items(learners, key = { it.enrolmentId }) { learner ->
-                Card {
+                AppCard {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(learner.name, style = MaterialTheme.typography.titleMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -156,14 +178,6 @@ private fun AttendanceContent(vm: LmsViewModel, screen: Screen.Attendance, sheet
     }
 
     if (enlarged && sheet.checkinUrl != null) {
-        Dialog(onDismissRequest = { enlarged = false }) {
-            Surface(shape = RoundedCornerShape(24.dp), color = Color.White) {
-                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    QrCode(sheet.checkinUrl, Modifier.fillMaxWidth())
-                    Text(screen.label, color = Color.Black, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-                    TextButton(onClick = { enlarged = false }) { Text("Close", color = Color(0xFF0A3D8F)) }
-                }
-            }
-        }
+        QrDialog(screen.label, sheet.checkinUrl, "Learners scan this code to check in.", tag = "checkinQr") { enlarged = false }
     }
 }

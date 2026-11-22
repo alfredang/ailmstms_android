@@ -16,11 +16,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,6 +34,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.sp
+import com.tertiaryinfotech.ailmstms.data.Roles
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -56,7 +61,31 @@ fun LoginScreen(vm: LmsViewModel) {
             "Classes, courseware, attendance, assessments and reminders for Tertiary Infotech Academy learners and trainers.",
             style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Card {
+        // One role per sign-in. Chosen before signing in (and before entering the demo).
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            val lms = LocalLmsColors.current
+            Text("Sign in as", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().testTag("loginRole")) {
+                Roles.ALL.forEachIndexed { i, role ->
+                    SegmentedButton(
+                        selected = vm.loginRole == role, onClick = { vm.chooseLoginRole(role) }, enabled = !vm.busy,
+                        shape = SegmentedButtonDefaults.itemShape(i, Roles.ALL.size),
+                        icon = {},
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = lms.card, activeContentColor = MaterialTheme.colorScheme.primary, activeBorderColor = lms.cardBorder,
+                            inactiveContainerColor = lms.field, inactiveContentColor = MaterialTheme.colorScheme.onSurface, inactiveBorderColor = lms.cardBorder,
+                        ),
+                        modifier = Modifier.testTag("loginRole-$role"),
+                    ) { Text(Roles.label(role), fontWeight = if (vm.loginRole == role) FontWeight.SemiBold else FontWeight.Normal) }
+                }
+            }
+            Text(
+                if (vm.loginRole == Roles.TRAINER) "See the classes you teach, attendance, payout and training hours."
+                else "See the courses you are taking. Trainers attending a course sign in as a learner.",
+                fontSize = 13.sp, lineHeight = 18.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        AppCard {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(if (vm.sent) "Check your email" else "Welcome back", style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(

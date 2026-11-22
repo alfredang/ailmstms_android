@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.SystemClock
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -49,12 +50,13 @@ class AppFlowTest {
     private fun waitUntilGone(text: String) =
         compose.waitUntil(15000) { compose.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isEmpty() }
 
-    private fun tab(name: String) = compose.onNodeWithText(name, useUnmergedTree = true).performClick()
+    private fun tab(name: String) = compose.onNodeWithTag("tab-$name").performClick()
     private fun back() = compose.onNodeWithContentDescription("Back").performClick()
 
     private fun openClass() {
-        tab("Courses")
-        compose.onNodeWithText("Building AI Applications").performClick()
+        tab("My Classes")
+        compose.onNodeWithTag("my-classes").performScrollToNode(hasText("DEMO · AI-101"))
+        compose.onNodeWithText("DEMO · AI-101").performClick()
         waitForClass()
     }
 
@@ -83,6 +85,9 @@ class AppFlowTest {
         // The test rule follows the activity by its launch intent, which onNewIntent has just replaced.
         compose.runOnUiThread { compose.activity.intent = launchIntent }
         compose.onNodeWithText("Send sign-in code").assertExists()
+        // One role per sign-in, Learner unless Trainer is chosen.
+        compose.onNodeWithText("Sign in as").assertExists()
+        compose.onNodeWithText("See the courses you are taking. Trainers attending a course sign in as a learner.").assertExists()
         compose.onNodeWithText("Explore demo").performScrollTo().performClick()
         waitForText("Question 1 of 3")
         compose.onNodeWithText("Day 1 recap quiz").assertExists()
@@ -111,7 +116,10 @@ class AppFlowTest {
         compose.onNodeWithText("Done").performClick()
 
         // Learner home
-        waitForText("Hello, Alex")
+        waitForText("Welcome")
+        compose.onNodeWithText("Alex").assertExists()
+        compose.onNodeWithText("My Profile").assertExists()
+        compose.onAllNodes(hasTestTag("viewAsPicker")).assertCountEquals(0)
         compose.onNodeWithText("TIA TMS").assertExists()
         compose.onNodeWithText("DEMO · Fictional sample data").assertExists()
         waitForText("Session 1 · Foundations", substring = true)
@@ -138,6 +146,7 @@ class AppFlowTest {
         compose.onNodeWithText("Learner slides").performClick()
         waitForText("Page 1 of 3")
         compose.onNodeWithText("Open in browser").assertExists()
+        compose.onNodeWithContentDescription("Download").assertExists()
         compose.onNodeWithContentDescription("Zoom in").performClick()
         compose.onNodeWithContentDescription("Zoom out").performClick()
         compose.waitUntil(8000) { compose.onAllNodes(hasContentDescription("Page 1")).fetchSemanticsNodes().isNotEmpty() }
@@ -193,33 +202,58 @@ class AppFlowTest {
         waitForClass()
         back()
 
-        // Account: role switch, reminders, profile, theme, password
-        tab("Account")
-        compose.onNodeWithText("Trainer", useUnmergedTree = true).performClick()
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Class reminders", substring = true))
-        compose.onNodeWithText("In demo, enabling reminders shows a sample notification. Live accounts receive scheduled class reminders.", substring = true).assertExists()
-        val app = compose.activity
-        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("pm grant ${app.packageName} android.permission.POST_NOTIFICATIONS").close()
-        compose.onNode(isToggleable()).performClick()
-        compose.waitUntil(8000) { app.getSystemService(NotificationManager::class.java).activeNotifications.any { it.id == DemoNotifications.ID } }
-        capture("09-account")
+        // Learner tabs that wait for their data
+        tab("Certificates")
+        waitForText("Coming soon")
+        compose.onNodeWithText("Your course certificates will appear here once they are issued.").assertExists()
+        tab("Billing")
+        compose.onNodeWithText("Your invoices and payment history will appear here.").assertExists()
 
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Edit profile"))
-        compose.onNodeWithText("Edit profile").performClick()
-        waitForText("Your details")
+        // Account, reached from the home header: one page with contact, profile, theme, password, reminders
+        tab("My Classes")
+        compose.onNodeWithTag("myProfileLink").performClick()
+        waitForText("Contact", substring = true)
         compose.onNodeWithText("alex@example.com").assertExists()
+        compose.onNodeWithContentDescription("WhatsApp: +65 6000 0000").assertExists()
         compose.onNodeWithText("LinkedIn profile link").assertExists()
+        capture("09-account")
         compose.onNodeWithText("Dark").performScrollTo().performClick()
         capture("10-profile-dark")
         compose.onNodeWithText("Light").performClick()
         compose.onNodeWithText("System").performClick()
-        compose.onNodeWithText("Save profile").performScrollTo().performClick()
-        waitForText("Your account")
+        compose.onNodeWithTag("saveProfile").performScrollTo().performClick()
+        waitForText("Profile saved")
         waitUntilGone("Profile saved")
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Change password"))
-        compose.onNodeWithText("Change password").performClick()
+        compose.onNodeWithText("In demo, enabling reminders shows a sample notification. Live accounts receive scheduled class reminders.").performScrollTo().assertExists()
+        val app = compose.activity
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("pm grant ${app.packageName} android.permission.POST_NOTIFICATIONS").close()
+        compose.onNode(isToggleable()).performClick()
+        compose.waitUntil(8000) { app.getSystemService(NotificationManager::class.java).activeNotifications.any { it.id == DemoNotifications.ID } }
+        compose.onNodeWithText("Change password").performScrollTo().performClick()
         waitForText("Current password")
         back()
+
+        // Sign out, then the demo again as a trainer
+        compose.onNodeWithText("Sign out").performScrollTo().performClick()
+        compose.onNodeWithTag("confirmSignOut").performClick()
+        waitForText("Send sign-in code")
+        compose.onNodeWithTag("loginRole-trainer").performClick()
+        compose.onNodeWithText("See the classes you teach, attendance, payout and training hours.").assertExists()
+        compose.onNodeWithText("Explore demo").performScrollTo().performClick()
+        waitForText("Welcome")
+        compose.onNodeWithText("Classes you teach", ignoreCase = true).assertExists()
+        capture("16-trainer-home")
+
+        // Trainer tabs: payouts, and hours waiting for their data
+        tab("Payout")
+        waitForText("Total paid")
+        compose.onNodeWithText("S$3,350.00").assertExists()
+        compose.onNodeWithText("3 payouts").assertExists()
+        capture("17-trainer-payout")
+        tab("Hours")
+        compose.onNodeWithText("Your training hours for the classes you teach will appear here.").assertExists()
+        tab("Account")
+        compose.onNodeWithText("Trainer").assertExists()
 
         // Trainer: QR code, manual attendance, results
         openClass()
@@ -239,6 +273,14 @@ class AppFlowTest {
         back()
         inClass("4 present")
 
+        // TRAQOM: the trainer shows the survey as a QR code and can share the link
+        inClass("Show TRAQOM Survey QR")
+        compose.onNodeWithText("Show TRAQOM Survey QR").performClick()
+        compose.onNodeWithTag("traqomQr").assertExists()
+        compose.onNodeWithText("Share Link").assertExists()
+        capture("18-trainer-traqom-qr")
+        compose.onNodeWithText("Done").performClick()
+
         inClass("Assessments & results")
         compose.onNodeWithText("Assessments & results").performClick()
         waitForText("Learner results")
@@ -253,10 +295,11 @@ class AppFlowTest {
         back()
         back()
 
-        // Sign out returns to the sign-in screen
+        // Sign out returns to the sign-in screen, with the choice back on Learner
         tab("Account")
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Sign out"))
-        compose.onNodeWithText("Sign out").performClick()
-        compose.onNodeWithText("Send sign-in code").assertExists()
+        compose.onNodeWithText("Sign out").performScrollTo().performClick()
+        compose.onNodeWithTag("confirmSignOut").performClick()
+        waitForText("Send sign-in code")
+        compose.onNodeWithText("See the courses you are taking. Trainers attending a course sign in as a learner.").assertExists()
     }
 }

@@ -20,6 +20,15 @@ class DemoApiTest {
     private val api = DemoApi(today = { LocalDate.parse("2026-11-10") }, pause = 0)
 
     @Test
+    fun trainerSeesSamplePayouts() = runBlocking {
+        val payouts = api.payouts()
+        assertEquals(3, payouts.size)
+        assertEquals(3350.0, payouts.sumOf { it.amount }, 0.001)
+        assertTrue(payouts.all { it.title.isNotBlank() && it.paymentDate > it.endDate && it.endDate >= it.startDate })
+        assertEquals(payouts.sortedByDescending { it.paymentDate }, payouts)
+    }
+
+    @Test
     fun learnerSeesClassesWithMaterialsAssessmentsAndFeedback() = runBlocking {
         val dashboard = api.dashboard("learner")
         assertEquals(2, dashboard.courses.size)

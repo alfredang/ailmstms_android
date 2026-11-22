@@ -72,3 +72,27 @@ fun parseQuizLink(url: String?, host: String): QuizLink? {
     if (!QUIZ_ID.matches(parts[1]) || !QUIZ_ID.matches(parts[2])) return null
     return QuizLink(parts[1], parts[2])
 }
+
+/**
+ * Where the file behind a material can be downloaded: Google Drive and Docs viewer links are
+ * turned into their download / PDF-export form, any other https link is used as it is. Null for
+ * something that is not one file (a Drive folder) or a link that is not safe to fetch.
+ */
+fun downloadSource(url: String): String? {
+    if (!isSafeLink(url)) return null
+    val uri = runCatching { URI(url) }.getOrNull() ?: return null
+    val host = uri.host.lowercase()
+    val parts = uri.path.orEmpty().split('/').filter { it.isNotEmpty() }
+    fun idAfter(key: String): String? = parts.indexOf(key).let { i -> if (i >= 0) parts.getOrNull(i + 1) else null }?.takeIf(FILE_ID::matches)
+    if (host == "drive.google.com") {
+        if ("folders" in parts || "drive" == parts.firstOrNull()) return null
+        val id = idAfter("d") ?: queryValue(uri, "id")?.takeIf(FILE_ID::matches) ?: return null
+        return "https://drive.usercontent.google.com/download?id=$id&export=download&confirm=t"
+    }
+    if (host == "docs.google.com") {
+        // /document/d/ID, /presentation/d/ID, /spreadsheets/d/ID
+        val id = idAfter("d")
+        if (id != null && parts[0] in listOf("document", "presentation", "spreadsheets")) return "https://docs.google.com/${parts[0]}/d/$id/export?format=pdf"
+    }
+    return url
+}

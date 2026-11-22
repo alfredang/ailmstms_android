@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -116,7 +115,7 @@ private fun LearnerAssessments(vm: LmsViewModel, detail: ClassDetail) {
 @Composable
 private fun AssessmentCard(vm: LmsViewModel, assessment: Assessment, uploading: Boolean, onPick: () -> Unit, onDelete: (Submission) -> Unit) {
     val upload = vm.upload?.takeIf { it.type == assessment.type }
-    Card {
+    AppCard {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(assessment.label, style = MaterialTheme.typography.titleLarge)
             if (assessment.questionUrl != null) {
@@ -184,7 +183,7 @@ private fun TrainerAssessments(vm: LmsViewModel, detail: ClassDetail) {
         item { SectionTitle("Learner results") }
         if (detail.roster.isEmpty()) item { EmptyCard("No learners yet", "Learners appear here once they are enrolled in this class.") }
         items(detail.roster, key = { it.enrolmentId }) { learner ->
-            Card {
+            AppCard {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Column(Modifier.weight(1f)) {

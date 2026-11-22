@@ -24,12 +24,19 @@ data class LmsColors(
     val successContainer: Color,
     val onSuccessContainer: Color,
     val warning: Color,
+    /** Cards sit on the page as a lighter surface with a hairline border. */
+    val card: Color,
+    val cardBorder: Color,
+    /** Inset fields and unselected segments. */
+    val field: Color,
+    /** Brand blue for filled surfaces that carry white content (the total card, the role switcher). */
+    val brandFill: Color,
 ) {
     val headerBrush: Brush get() = Brush.linearGradient(listOf(headerStart, headerEnd))
 }
 
 val LocalLmsColors = staticCompositionLocalOf {
-    LmsColors(false, Color(0xFF051C47), Color(0xFF0A3D8F), Color.White, Color(0xFFC9DAFF), Color(0xFF1B7F4B), Color(0xFFD5F2E1), Color(0xFF0B3D23), Color(0xFF9A6700))
+    LmsColors(false, Color(0xFF051C47), Color(0xFF0A3D8F), Color.White, Color(0xFFC9DAFF), Color(0xFF1B7F4B), Color(0xFFD5F2E1), Color(0xFF0B3D23), Color(0xFF9A6700), Color.White, Color(0xFFDCE2EE), Color(0xFFE9EEF7), Color(0xFF0A3D8F))
 }
 
 private fun rgb(value: Int) = Color(0xFF000000L or value.toLong())
@@ -81,9 +88,9 @@ fun LmsTheme(mode: ThemeMode, brandHex: String?, content: @Composable () -> Unit
         )
     }
     val extras = if (dark) {
-        LmsColors(true, Color(0xFF060B17), deep, Color.White, Color(0xFFB9CBF5), Color(0xFF7FD9A6), Color(0xFF0F4A2C), Color(0xFFC9F2DA), Color(0xFFF2C56B))
+        LmsColors(true, Color(0xFF060B17), deep, Color.White, Color(0xFFB9CBF5), Color(0xFF7FD9A6), Color(0xFF0F4A2C), Color(0xFFC9F2DA), Color(0xFFF2C56B), Color(0xFF131C31), Color(0xFF2A3654), Color(0xFF1B2845), primary)
     } else {
-        LmsColors(false, deep, primary, Color.White, Color(0xFFC9DAFF), Color(0xFF1B7F4B), Color(0xFFD5F2E1), Color(0xFF0B3D23), Color(0xFF8A5A00))
+        LmsColors(false, deep, primary, Color.White, Color(0xFFC9DAFF), Color(0xFF1B7F4B), Color(0xFFD5F2E1), Color(0xFF0B3D23), Color(0xFF8A5A00), Color.White, Color(0xFFDCE2EE), Color(0xFFE9EEF7), primary)
     }
     CompositionLocalProvider(LocalLmsColors provides extras) {
         MaterialTheme(colorScheme = scheme, content = content)

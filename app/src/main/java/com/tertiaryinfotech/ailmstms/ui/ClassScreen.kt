@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,10 +20,9 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,6 +65,7 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
     val trainer = vm.role == "trainer"
     var manualCode by rememberSaveable { mutableStateOf<String?>(null) }
     var scanProblem by rememberSaveable { mutableStateOf<String?>(null) }
+    var traqomQr by rememberSaveable { mutableStateOf(false) }
 
     fun scan() {
         if (vm.isDemo) {
@@ -90,7 +93,7 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
                     val place = listOf(detail.format, detail.venue).filter { it.isNotBlank() }.joinToString(" · ")
                     if (place.isNotBlank()) Text(place, color = colors.onHeaderMuted)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (detail.classStatus.isNotBlank()) StatusChip(detail.classStatus, statusTone(detail.classStatus))
+                        if (detail.classStatus.isNotBlank()) StatusChip(detail.classStatus, statusTone(detail.classStatus), solid = true)
                         if (detail.runCode.isNotBlank()) Text("Run ${detail.runCode}", color = colors.onHeaderMuted, style = MaterialTheme.typography.labelMedium)
                     }
                     detail.meetingUrl?.let { link ->
@@ -177,10 +180,10 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
             item { SectionTitle("Feedback") }
             if (trainer) {
                 item {
-                    OutlinedCard {
+                    AppCard {
                         Text(
                             "${detail.feedbackCount} course feedback response${if (detail.feedbackCount == 1) "" else "s"} received",
-                            Modifier.fillMaxWidth().padding(20.dp),
+                            Modifier.fillMaxWidth().padding(16.dp),
                         )
                     }
                 }
@@ -203,8 +206,23 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
                         trailing = if (!trainer && detail.traqomCompleted) ({ StatusChip("Done", Tone.Good) }) else null,
                     ) { openLink(context, link) }
                 }
+                // The trainer shows the survey to the class as a QR code, as with the check-in code.
+                if (trainer) {
+                    item {
+                        Button(onClick = { traqomQr = true }, modifier = Modifier.fillMaxWidth().testTag("showTraqomQR")) {
+                            Icon(QrIcon, null, Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Show TRAQOM Survey QR")
+                        }
+                    }
+                }
             }
         }
+    }
+
+    val traqom = detail.traqomUrl
+    if (traqomQr && trainer && traqom != null) {
+        QrDialog("TRAQOM Survey", traqom, "Learners scan this to complete SSG's course quality survey.", tag = "traqomQr", shareLabel = "Share Link") { traqomQr = false }
     }
 
     manualCode?.let { code ->
@@ -231,7 +249,7 @@ fun resultTone(status: String): Tone = when (status.trim().lowercase()) {
 
 @Composable
 private fun SessionRow(session: DetailSession, canTakeAttendance: Boolean, showUnmarked: Boolean, onAttendance: () -> Unit) {
-    Card {
+    AppCard {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {

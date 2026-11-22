@@ -219,6 +219,21 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
         return QuizResult(marks.count { it.correct }, marks.size, done, marks)
     }
 
+    override suspend fun payouts(): List<Payout> {
+        delay(pause)
+        val day = today()
+        fun paid(id: String, title: String, code: String, learners: Int, amount: Double, weeksAgo: Long, days: Long, source: String): Payout {
+            // Classes start on a Monday and are paid on the Friday of the following week.
+            val start = day.minusWeeks(weeksAgo).with(java.time.DayOfWeek.MONDAY)
+            return Payout(id, title, code, learners, amount, start.plusDays(11).toString(), start.toString(), start.plusDays(days - 1).toString(), source)
+        }
+        return listOf(
+            paid("demo-pay-3", "Building AI Applications", "DEMO · AI-101", 12, 1600.0, 4, 2, "wsq"),
+            paid("demo-pay-2", "Data Analytics Essentials", "DEMO · DATA-101", 9, 800.0, 9, 1, "wsq"),
+            paid("demo-pay-1", "Prompt Engineering Workshop", "DEMO · PE-201", 15, 950.0, 15, 1, "manual"),
+        )
+    }
+
     companion object {
         /** The link a quiz QR code would carry; used to open the sample quiz from the demo class. */
         const val QUIZ_COURSE_ID = "00000000-0000-4000-8000-000000000001"

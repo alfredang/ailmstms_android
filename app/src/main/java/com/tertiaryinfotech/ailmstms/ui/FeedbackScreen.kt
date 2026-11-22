@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -87,7 +86,7 @@ private fun FeedbackFormContent(vm: LmsViewModel, screen: Screen.Feedback, form:
         }
         form.sections.forEach { section ->
             item(key = "section-" + section.id) {
-                Card {
+                AppCard {
                     Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         if (section.title.isNotBlank()) SectionTitle(section.title)
                         section.fields.forEach { field -> FieldInput(vm, form, field) }

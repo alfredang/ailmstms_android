@@ -78,7 +78,7 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
         request("/api/android/send-otp", JSONObject().put("email", email), auth = false)
     }
 
-    private fun startSession(data: JSONObject): Profile {
+    private fun startSession(data: JSONObject, loginRole: String): Profile {
         val user = data.getJSONObject("user")
         val profile = Profile.parse(user)
         require(profile.roles.isNotEmpty()) { "This app is for learners and trainers only." }
@@ -86,18 +86,20 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
         require(token.startsWith("lms_")) { "Invalid sign-in response. Please try again." }
         store.token = token
         store.profile = user.toString()
-        store.role = profile.roles.first()
+        // One role per sign-in: the one chosen on the sign-in screen, when the account holds it.
+        store.role = Roles.resolve(loginRole, profile.roles)
+        store.loginRole = store.role
         return profile
     }
 
-    suspend fun login(email: String, otp: String): Profile {
+    suspend fun login(email: String, otp: String, loginRole: String = Roles.LEARNER): Profile {
         val body = JSONObject().put("email", email).put("otp", otp).put("loginType", "otp")
-        return startSession(data(request("/api/android/login", body, auth = false)))
+        return startSession(data(request("/api/android/login", body, auth = false)), loginRole)
     }
 
-    suspend fun passwordLogin(email: String, password: String): PasswordLogin {
+    suspend fun passwordLogin(email: String, password: String, loginRole: String = Roles.LEARNER): PasswordLogin {
         val data = data(request("/api/mobile/login", JSONObject().put("email", email).put("password", password), auth = false))
-        val profile = startSession(data)
+        val profile = startSession(data, loginRole)
         val force = data.optBoolean("forcePasswordChange")
         store.mustChangePassword = force
         return PasswordLogin(profile, force)
@@ -246,6 +248,13 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
         val userId = runCatching { JSONObject(store.profile).text("id") }.getOrDefault("")
         if (userId.isEmpty()) throw ApiException(400, "Please sign in again to submit this quiz.")
         return QuizResult.parse(request("/api/courses/submit-quiz", quizSubmission(userId, courseId, quizId, answers)))
+    }
+
+    // The route only answers for the caller's own id (or payroll staff), so the id is the session's own.
+    override suspend fun payouts(): List<Payout> {
+        val userId = runCatching { JSONObject(store.profile).text("id") }.getOrDefault("")
+        if (!Regex("^[A-Za-z0-9-]{1,64}$").matches(userId)) throw ApiException(400, "Please sign in again to see your payouts.")
+        return Payout.parseAll(request("/api/trainer/$userId/payout-history"))
     }
 
     private companion object {

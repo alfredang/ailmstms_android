@@ -19,6 +19,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.tertiaryinfotech.ailmstms.data.ApiException
+import com.tertiaryinfotech.ailmstms.data.DocumentDownloader
 import com.tertiaryinfotech.ailmstms.data.PdfFetcher
 import com.tertiaryinfotech.ailmstms.data.Repository
 import com.tertiaryinfotech.ailmstms.data.SessionStore
@@ -29,6 +30,7 @@ import java.io.File
 class LmsApplication : Application() {
     val repo by lazy { Repository(SessionStore(this)) }
     val pdfs by lazy { PdfFetcher(File(cacheDir, "materials")) }
+    val downloads by lazy { DocumentDownloader(File(cacheDir, "downloads")) }
 
     override fun onCreate() {
         super.onCreate()

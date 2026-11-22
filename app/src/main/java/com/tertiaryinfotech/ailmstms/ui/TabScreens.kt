@@ -1,11 +1,10 @@
 package com.tertiaryinfotech.ailmstms.ui
 
 import android.content.Intent
-import android.net.Uri
 import android.provider.CalendarContract
-import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,117 +22,180 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.tertiaryinfotech.ailmstms.BuildConfig
+import androidx.compose.ui.unit.sp
 import com.tertiaryinfotech.ailmstms.LmsViewModel
-import com.tertiaryinfotech.ailmstms.Screen
 import com.tertiaryinfotech.ailmstms.data.ClassSession
+import com.tertiaryinfotech.ailmstms.data.Roles
 import com.tertiaryinfotech.ailmstms.data.SGT
 import com.tertiaryinfotech.ailmstms.data.ThemeMode
 import com.tertiaryinfotech.ailmstms.data.isSafeLink
 import com.tertiaryinfotech.ailmstms.data.prettyDay
-import java.net.URLEncoder
 import java.time.Instant
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+/**
+ * Top of My Classes: who is signed in, a link to the profile and, for the owner account only,
+ * the "Viewing as" role switcher.
+ */
 @Composable
-fun HomeScreen(vm: LmsViewModel, onCourses: () -> Unit, onCalendar: () -> Unit) {
+fun HomeHeader(vm: LmsViewModel, onProfile: () -> Unit) {
     val colors = LocalLmsColors.current
-    val upcoming = vm.dashboard.sessions.filter { it.endsAt > Instant.now() }
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        item {
-            Box(Modifier.fillMaxWidth().background(colors.headerBrush, RoundedCornerShape(24.dp)).padding(24.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(vm.role.uppercase() + " SPACE", color = colors.onHeaderMuted, style = MaterialTheme.typography.labelLarge)
-                    Text(
-                        "Hello, ${vm.profile?.name?.substringBefore(' ').orEmpty()}",
-                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = colors.onHeader,
-                    )
-                    Text(vm.userProfile?.academy?.takeIf { it.isNotBlank() } ?: "Tertiary Infotech Academy", color = colors.onHeaderMuted)
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        val chip = AssistChipDefaults.assistChipColors(labelColor = colors.onHeader)
-                        val border = AssistChipDefaults.assistChipBorder(true, borderColor = colors.onHeaderMuted)
-                        AssistChip(onClick = onCourses, label = { Text("${vm.dashboard.courses.size} courses") }, colors = chip, border = border)
-                        AssistChip(onClick = onCalendar, label = { Text("${upcoming.size} upcoming") }, colors = chip, border = border)
+    var roleMenu by remember { mutableStateOf(false) }
+    val name = vm.userProfile?.fullName?.takeIf { it.isNotBlank() } ?: vm.profile?.name.orEmpty()
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AvatarView(vm.userProfile?.pictureUrl, name, 48.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Welcome", fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    name.substringBefore(' ').ifBlank { "back" }, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Row(
+                Modifier.clip(RoundedCornerShape(50)).background(accentSoft()).clickable(onClick = onProfile)
+                    .padding(horizontal = 12.dp, vertical = 8.dp).testTag("myProfileLink"),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(Icons.Default.AccountCircle, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                Text("My Profile", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+            }
+        }
+        if (vm.canSwitchRole) {
+            Box {
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(colors.brandFill).clickable(enabled = !vm.busy) { roleMenu = true }
+                        .padding(horizontal = 14.dp, vertical = 10.dp).testTag("viewAsPicker"),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(SwapIcon, null, Modifier.size(18.dp), tint = Color.White)
+                    Text("Viewing as ${Roles.label(vm.role)}", Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Icon(Icons.Default.KeyboardArrowDown, null, Modifier.size(18.dp), tint = Color.White)
+                }
+                DropdownMenu(expanded = roleMenu, onDismissRequest = { roleMenu = false }, containerColor = colors.card) {
+                    vm.availableRoles.forEach { role ->
+                        DropdownMenuItem(
+                            text = { Text(Roles.label(role)) },
+                            trailingIcon = { if (role == vm.role) Icon(Icons.Default.Check, "Selected", tint = MaterialTheme.colorScheme.primary) },
+                            onClick = { roleMenu = false; vm.switchRole(role) },
+                            modifier = Modifier.testTag("viewAs-$role"),
+                        )
                     }
                 }
             }
         }
-        item { Heading("Next on your calendar") }
-        if (upcoming.isEmpty()) item { EmptyCard("No upcoming classes", "Your assigned classes will appear here. Refresh to check for changes.") }
-        items(upcoming.take(3), key = { it.id }) { SessionCard(it, onOpen = { vm.openClass(it.courseId) }) }
-        item { ActionRow(Icons.AutoMirrored.Filled.List, "Your classes", "Courseware, attendance, assessments and feedback", onClick = onCourses) }
-        item { Text("Class times are shown in Singapore time (SGT).", style = MaterialTheme.typography.bodySmall) }
     }
 }
 
+/**
+ * The home tab for both roles: the welcome header, what is next on the calendar (the old Home
+ * tab) and every class with search (the old Courses tab).
+ */
 @Composable
-fun CoursesScreen(vm: LmsViewModel) {
+fun MyClassesScreen(vm: LmsViewModel, onProfile: () -> Unit, onCalendar: () -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
+    val trainer = vm.role == Roles.TRAINER
     val courses = vm.dashboard.courses
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item { Heading("My classes") }
+    val upcoming = vm.dashboard.sessions.filter { it.endsAt > Instant.now() }
+    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.testTag("my-classes")) {
+        item { HomeHeader(vm, onProfile) }
+
         item {
-            OutlinedTextField(
-                query, { query = it }, label = { Text("Search courses") }, leadingIcon = { Icon(Icons.Default.Search, null) },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                SectionLabel("Next on your calendar", Modifier.weight(1f))
+                if (upcoming.isNotEmpty()) {
+                    Text(
+                        "${upcoming.size} upcoming · See calendar", Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onCalendar).padding(horizontal = 4.dp, vertical = 2.dp),
+                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         }
-        if (courses.isEmpty()) {
+        if (upcoming.isEmpty()) {
             item {
-                if (vm.busy) LoadingCard("Loading your classes…")
-                else EmptyCard("No classes yet", "Only classes you are enrolled in or assigned to teach appear here.")
+                if (vm.busy && courses.isEmpty()) LoadingCard("Loading your classes…")
+                else EmptyCard("No upcoming classes", "Your assigned classes will appear here. Refresh to check for changes.")
+            }
+        }
+        items(upcoming.take(3), key = { "next-" + it.id }) { SessionCard(it, onOpen = { vm.openClass(it.courseId) }) }
+
+        item { SectionLabel(if (trainer) "Classes you teach" else "My classes") }
+        if (courses.isNotEmpty()) {
+            item {
+                OutlinedTextField(
+                    query, { query = it }, placeholder = { Text("Search classes") }, leadingIcon = { Icon(Icons.Default.Search, null) },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp),
+                )
+            }
+        }
+        if (courses.isEmpty() && !vm.busy) {
+            item {
+                EmptyCard(
+                    "No classes yet",
+                    if (trainer) "Only classes you are assigned to teach appear here." else "Only classes you are enrolled in appear here.",
+                )
             }
         }
         val shown = courses.filter { it.title.contains(query, true) || it.code.contains(query, true) }
         if (courses.isNotEmpty() && shown.isEmpty()) item { EmptyCard("No match", "No class matches \"$query\".") }
         items(shown, key = { it.id }) { course ->
-            Card(onClick = { vm.openClass(course.id) }) {
-                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            AppCard(onClick = { vm.openClass(course.id) }) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(course.code, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(course.code, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                         if (course.classStatus.isNotBlank()) StatusChip(course.classStatus, statusTone(course.classStatus))
                     }
-                    Text(course.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                    Text(dateRange(course.start, course.end), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Open class  →", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                    Text(course.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(dateRange(course.start, course.end), Modifier.weight(1f), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Open class", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
+        }
+        item {
+            Text(
+                "Class times are shown in Singapore time (SGT).", Modifier.padding(horizontal = 4.dp),
+                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -157,10 +219,10 @@ fun CalendarScreen(vm: LmsViewModel) {
     var chosenValue by rememberSaveable { mutableStateOf<String?>(null) }
     val month = YearMonth.parse(monthValue)
     val filtered = sessions.filter { YearMonth.from(it.date) == month && (chosenValue == null || it.date.toString() == chosenValue) }
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Heading("Class calendar") }
         item {
-            Card {
+            AppCard {
                 Column(Modifier.padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { monthValue = month.minusMonths(1).toString(); chosenValue = null }) {
@@ -225,13 +287,13 @@ fun CalendarScreen(vm: LmsViewModel) {
 @Composable
 fun SessionCard(session: ClassSession, onOpen: () -> Unit) {
     val context = LocalContext.current
-    Card(onClick = onOpen) {
-        Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(session.whenText, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-            Text(session.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    AppCard(onClick = onOpen) {
+        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(session.whenText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            Text(session.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp)
             Text(
                 listOf(session.subtitle, session.format, session.venue).filter { it.isNotBlank() }.joinToString(" · "),
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(
@@ -245,7 +307,7 @@ fun SessionCard(session: ClassSession, onOpen: () -> Unit) {
                         runCatching { context.startActivity(intent) }
                             .onFailure { Toast.makeText(context, "No calendar app is installed.", Toast.LENGTH_LONG).show() }
                     },
-                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    contentPadding = PaddingValues(start = 0.dp, end = 8.dp),
                 ) {
                     Icon(Icons.Default.DateRange, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
@@ -253,7 +315,7 @@ fun SessionCard(session: ClassSession, onOpen: () -> Unit) {
                 }
                 if (isSafeLink(session.meeting)) TextButton(onClick = { openLink(context, session.meeting) }) { Text("Join class") }
                 Spacer(Modifier.weight(1f))
-                Text("Open class", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                Text("Open class", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary)
             }
         }
@@ -262,100 +324,18 @@ fun SessionCard(session: ClassSession, onOpen: () -> Unit) {
 
 @Composable
 fun ThemePicker(vm: LmsViewModel) {
+    val colors = LocalLmsColors.current
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         ThemeMode.entries.forEachIndexed { i, mode ->
             SegmentedButton(
                 selected = vm.themeMode == mode, onClick = { vm.chooseTheme(mode) },
                 shape = SegmentedButtonDefaults.itemShape(i, ThemeMode.entries.size),
-            ) { Text(mode.label) }
+                icon = {},
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = colors.brandFill, activeContentColor = Color.White, activeBorderColor = colors.brandFill,
+                    inactiveContainerColor = colors.field, inactiveContentColor = MaterialTheme.colorScheme.onSurface, inactiveBorderColor = colors.cardBorder,
+                ),
+            ) { Text(mode.label, fontWeight = if (vm.themeMode == mode) FontWeight.SemiBold else FontWeight.Normal) }
         }
-    }
-}
-
-@Composable
-fun AccountScreen(vm: LmsViewModel, onNotifications: (Boolean) -> Unit) {
-    val context = LocalContext.current
-    var feedbackTitle by rememberSaveable { mutableStateOf("") }
-    var feedback by rememberSaveable { mutableStateOf("") }
-    val openSettings = {
-        context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
-    }
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        item { Heading("Your account") }
-        item {
-            Card {
-                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(vm.profile?.name.orEmpty(), style = MaterialTheme.typography.titleLarge)
-                    Text(vm.profile?.email.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        vm.profile?.roles?.forEach { r ->
-                            FilterChip(selected = vm.role == r, onClick = { vm.switchRole(r) }, label = { Text(r.replaceFirstChar(Char::titlecase)) }, enabled = !vm.busy)
-                        }
-                    }
-                }
-            }
-        }
-        item { ActionRow(Icons.Default.Edit, "Edit profile", "Name, contact details and appearance") { vm.openEditProfile() } }
-        item { ActionRow(Icons.Default.Lock, "Change password", "Requires your current password") { vm.formError = null; vm.stack.add(Screen.ChangePassword) } }
-        item {
-            Card {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SectionTitle("Appearance")
-                    ThemePicker(vm)
-                    Text("System follows your device setting. Your choice is saved to your profile.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        item {
-            Card {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Notifications, null)
-                        Text("Class reminders", Modifier.weight(1f).padding(horizontal = 12.dp), style = MaterialTheme.typography.titleMedium)
-                        Switch(checked = vm.pushEnabled, onCheckedChange = onNotifications, enabled = !vm.busy)
-                    }
-                    if (vm.isDemo) Text("In demo, enabling reminders shows a sample notification. Live accounts receive scheduled class reminders.")
-                    Text(
-                        "Reminders 3 days and 1 day before each class, and at 8:00 AM Singapore time on the day of class. " +
-                            "Delivery needs notification permission and may be a few minutes late.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TextButton(onClick = openSettings) { Text("Open notification settings") }
-                }
-            }
-        }
-        item { Heading("Help & feedback") }
-        item { OutlinedTextField(feedbackTitle, { feedbackTitle = it }, label = { Text("Feedback title") }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
-        item { OutlinedTextField(feedback, { feedback = it }, label = { Text("How can we help?") }, minLines = 3, modifier = Modifier.fillMaxWidth()) }
-        item {
-            OutlinedButton(
-                onClick = { openLink(context, "$SUPPORT_WHATSAPP?text=" + URLEncoder.encode("$APP_NAME Android feedback\n$feedbackTitle\n$feedback", "UTF-8")) },
-                enabled = feedback.isNotBlank(),
-            ) { Text("Send via WhatsApp") }
-        }
-        item { Heading("About $APP_NAME") }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Your classes, courseware, attendance and assessments, connected to Tertiary Infotech Academy's training management system.")
-                Text("Tertiary Infotech Academy Pte. Ltd.", Modifier.padding(top = 8.dp), fontWeight = FontWeight.SemiBold)
-                Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-        item {
-            Column {
-                TextButton(onClick = { openLink(context, PRIVACY_URL) }) { Text("Privacy policy") }
-                TextButton(onClick = { openLink(context, "https://www.tertiaryinfotech.com") }) { Text("Developer website") }
-                TextButton(onClick = {
-                    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:sales@tertiarycourses.com.sg"))
-                        .putExtra(Intent.EXTRA_SUBJECT, "$APP_NAME account deletion request")
-                    runCatching { context.startActivity(intent) }
-                }) { Text("Request account deletion") }
-                Text(
-                    "Contact the training provider to request deletion. Training records subject to legal retention requirements may be retained.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        }
-        item { OutlinedButton(onClick = vm::logout, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) { Text("Sign out") } }
     }
 }

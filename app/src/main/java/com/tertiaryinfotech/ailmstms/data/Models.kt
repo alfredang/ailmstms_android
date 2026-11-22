@@ -40,12 +40,42 @@ fun prettyInstant(value: String): String =
         Instant.parse(value).atZone(SGT).format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale.ENGLISH)) + " SGT"
     }.getOrDefault(value.take(16).replace('T', ' '))
 
-/** The signed-in identity: only learner and trainer roles are ever kept. */
+/**
+ * The views a signed-in account can take. Everyone has exactly one role per sign-in (chosen on
+ * the sign-in screen); only the owner account may switch between the roles it holds.
+ * A later phase adds a role by listing it in [ALL] and [LABELS].
+ */
+object Roles {
+    const val LEARNER = "learner"
+    const val TRAINER = "trainer"
+
+    /** Every role the app knows, in the order they are offered. */
+    val ALL = listOf(LEARNER, TRAINER)
+    private val LABELS = mapOf(LEARNER to "Learner", TRAINER to "Trainer")
+    private const val OWNER_EMAIL = "angch@tertiaryinfotech.com"
+
+    fun label(role: String): String = LABELS[role] ?: role.replaceFirstChar(Char::titlecase)
+
+    /** The role a sign-in gets: the chosen one when the account holds it, otherwise the first it does hold. */
+    fun resolve(chosen: String, held: List<String>): String =
+        if (chosen in held) chosen else ALL.firstOrNull { it in held } ?: LEARNER
+
+    /** A session from before the sign-in choice existed keeps the trainer view when the account teaches. */
+    fun legacy(held: List<String>): String = resolve(TRAINER, held)
+
+    fun isOwner(email: String?): Boolean = email?.trim()?.lowercase() == OWNER_EMAIL
+
+    /** The roles this account may view as right now: just [active], except for the owner account. */
+    fun available(email: String?, held: List<String>, active: String): List<String> =
+        if (isOwner(email)) ALL.filter { it in held }.ifEmpty { listOf(active) } else listOf(active)
+}
+
+/** The signed-in identity: only the roles in [Roles.ALL] are ever kept. */
 data class Profile(val id: String, val name: String, val email: String, val roles: List<String>) {
     companion object {
         fun parse(o: JSONObject): Profile {
             val roles = o.array("roles").let { a -> (0 until a.length()).map { a.optString(it) } }
-                .filter { it in listOf("learner", "trainer") }
+                .filter { it in Roles.ALL }
             return Profile(o.text("id"), o.text("fullName"), o.text("email"), roles)
         }
     }
@@ -482,3 +512,33 @@ fun quizSubmission(userId: String, courseId: String, quizId: String, answers: Ma
     answers.forEach { (questionId, index) -> picked.put(questionId, index) }
     return JSONObject().put("userId", userId).put("courseId", courseId).put("quizId", quizId).put("answers", picked)
 }
+
+// ---------------------------------------------------------------- trainer payouts
+
+/** One completed payout for a class the trainer taught, from /api/trainer/<id>/payout-history. */
+data class Payout(
+    val id: String,
+    val title: String,
+    val courseCode: String,
+    val learners: Int,
+    val amount: Double,
+    val paymentDate: String,
+    val startDate: String,
+    val endDate: String,
+    /** "wsq" for a course run, "manual" for a class added by payroll. */
+    val source: String,
+) {
+    companion object {
+        fun parse(o: JSONObject) = Payout(
+            o.text("id"), o.text("course_title"), o.text("course_code"), o.optInt("num_learners"),
+            // Postgres numerics arrive as text ("1200.00"); a plain number is read the same way.
+            o.text("actual_payout").toDoubleOrNull() ?: 0.0,
+            o.text("payment_date"), o.text("start_date"), o.text("end_date"), o.text("source"),
+        )
+
+        fun parseAll(json: JSONObject): List<Payout> = json.array("data").objects().map(::parse)
+    }
+}
+
+/** Singapore dollars, e.g. "S$1,200.00". */
+fun money(amount: Double): String = "S$" + String.format(Locale.ENGLISH, "%,.2f", amount)

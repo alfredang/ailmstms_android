@@ -9,6 +9,9 @@ interface SessionState {
     var token: String
     var profile: String
     var role: String
+
+    /** The role chosen on the sign-in screen. Empty for a session that predates the choice. */
+    var loginRole: String
     var pushEnabled: Boolean
     var pushToken: String
 
@@ -47,6 +50,9 @@ class SessionStore(context: Context) : SessionState {
     override var role: String
         get() = string("role", "learner")
         set(v) = put("role", v)
+    override var loginRole: String
+        get() = string("loginRole")
+        set(v) = put("loginRole", v)
     override var pushEnabled: Boolean
         get() = prefs.getBoolean("pushEnabled", false)
         set(v) = prefs.edit().putBoolean("pushEnabled", v).apply()

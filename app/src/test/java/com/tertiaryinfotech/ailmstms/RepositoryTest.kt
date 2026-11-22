@@ -26,6 +26,7 @@ class MemoryState : SessionState {
     override var token = ""
     override var profile = ""
     override var role = "learner"
+    override var loginRole = ""
     override var pushEnabled = false
     override var pushToken = ""
     override var theme = "system"
@@ -33,7 +34,7 @@ class MemoryState : SessionState {
     override var userProfile = ""
     override var mustChangePassword = false
     override fun clear() {
-        token = ""; profile = ""; role = "learner"; pushEnabled = false; theme = "system"; brandColor = ""; userProfile = ""; mustChangePassword = false
+        token = ""; profile = ""; role = "learner"; loginRole = ""; pushEnabled = false; theme = "system"; brandColor = ""; userProfile = ""; mustChangePassword = false
     }
 }
 
@@ -100,6 +101,44 @@ class RepositoryTest {
             assertEquals("This app is for learners and trainers only.", e.message)
         }
         assertEquals("", store.token)
+    }
+
+    @Test
+    fun signingInAsATrainerGivesTheTrainerRoleOnlyWhenTheAccountTeaches() = runBlocking {
+        server.enqueue(json("""{"data":{"user":{"id":"u1","email":"a@b.c","fullName":"Alex","roles":["learner","trainer"]},"token":"lms_abc"}}"""))
+        repo.passwordLogin("a@b.c", "secret", "trainer")
+        assertEquals("trainer", store.role)
+        assertEquals("trainer", store.loginRole)
+
+        server.enqueue(json("""{"success":true,"data":{"user":{"id":"u2","email":"l@b.c","fullName":"Lee","roles":["learner"]},"token":"lms_def"}}"""))
+        repo.login("l@b.c", "123456", "trainer")
+        assertEquals("an account that does not teach signs in as a learner", "learner", store.role)
+        assertEquals("learner", store.loginRole)
+    }
+
+    @Test
+    fun payoutsAreReadForTheSignedInTrainerOnly() = runBlocking {
+        store.token = "lms_abc"
+        store.profile = """{"id":"11111111-2222-3333-4444-555555555555","fullName":"Alex","email":"a@b.c","roles":["trainer"]}"""
+        server.enqueue(json("""{"success":true,"data":[
+            {"id":"p2","course_title":"Building AI Applications","course_code":"AI-101","num_learners":12,"actual_payout":"1600.00","payment_date":"2026-10-30","start_date":"2026-10-12","end_date":"2026-10-13","source":"wsq"},
+            {"id":"p1","course_title":"Prompt Workshop","course_code":null,"num_learners":null,"actual_payout":950.5,"payment_date":null,"start_date":"2026-08-03","end_date":"2026-08-03","source":"manual"}]}"""))
+        val payouts = repo.payouts()
+        val request = server.takeRequest()
+        assertEquals("/api/trainer/11111111-2222-3333-4444-555555555555/payout-history", request.path)
+        assertEquals("GET", request.method)
+        assertEquals("Bearer lms_abc", request.getHeader("Authorization"))
+        assertEquals(2, payouts.size)
+        assertEquals(1600.0, payouts[0].amount, 0.001)
+        assertEquals(12, payouts[0].learners)
+        assertEquals("wsq", payouts[0].source)
+        assertEquals(950.5, payouts[1].amount, 0.001)
+        assertEquals("", payouts[1].courseCode)
+        assertEquals("", payouts[1].paymentDate)
+        assertEquals(0, payouts[1].learners)
+
+        server.enqueue(json("""{"success":false,"error":"Forbidden"}""", 403))
+        assertEquals("Forbidden", expectApiError { repo.payouts() }.message)
     }
 
     @Test

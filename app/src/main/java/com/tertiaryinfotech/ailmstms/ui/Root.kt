@@ -19,10 +19,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +30,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -53,12 +54,39 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.size
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.tertiaryinfotech.ailmstms.LmsViewModel
 import com.tertiaryinfotech.ailmstms.Screen
+import com.tertiaryinfotech.ailmstms.data.Roles
 import kotlinx.coroutines.launch
+
+/** A bottom tab. [id] stays the same when the set of tabs changes with the role. */
+private data class TabSpec(val id: Int, val label: String, val icon: ImageVector)
+
+private const val TAB_CLASSES = 0
+private const val TAB_CALENDAR = 1
+private const val TAB_THIRD = 2
+private const val TAB_FOURTH = 3
+private const val TAB_ACCOUNT = 4
+
+/** The tabs for the role being viewed. A later role adds its own branch here. */
+private fun tabsFor(role: String): List<TabSpec> = buildList {
+    add(TabSpec(TAB_CLASSES, "My Classes", SchoolIcon))
+    add(TabSpec(TAB_CALENDAR, "Calendar", Icons.Default.DateRange))
+    if (role == Roles.TRAINER) {
+        add(TabSpec(TAB_THIRD, "Payout", PaymentsIcon))
+        add(TabSpec(TAB_FOURTH, "Hours", ClockIcon))
+    } else {
+        add(TabSpec(TAB_THIRD, "Certificates", CertificateIcon))
+        add(TabSpec(TAB_FOURTH, "Billing", CreditCardIcon))
+    }
+    add(TabSpec(TAB_ACCOUNT, "Account", Icons.Default.AccountCircle))
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,11 +103,20 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
     LaunchedEffect(openCalendar, signedIn) {
         if (openCalendar && signedIn) {
             vm.closeAll()
-            tab = 2
+            tab = TAB_CALENDAR
             onCalendarOpened()
         }
     }
-    LaunchedEffect(signedIn) { if (!signedIn) tab = 0 }
+    LaunchedEffect(signedIn) { if (!signedIn) tab = TAB_CLASSES }
+    // Changing role (the owner's switcher) goes back to the home tab of the new role.
+    LaunchedEffect(vm.role) { tab = TAB_CLASSES }
+    // A material fetched with Download goes to the system share sheet: save, print or send.
+    LaunchedEffect(vm.downloaded) {
+        vm.downloaded?.let { ready ->
+            vm.downloaded = null
+            runCatching { shareFile(context, ready.file, ready.title) }.onFailure { vm.notice = "No app is available to save or share this file." }
+        }
+    }
     LaunchedEffect(vm.notice) {
         vm.notice?.let {
             vm.notice = null
@@ -102,7 +139,7 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
         }
     }
 
-    val tabs = listOf("Home" to Icons.Default.Home, "Courses" to SchoolIcon, "Calendar" to Icons.Default.DateRange, "Account" to Icons.Default.Person)
+    val tabs = tabsFor(vm.role)
     Scaffold(
         topBar = {
             TopAppBar(
@@ -119,6 +156,15 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
                     if (signedIn && !gated && top == null) {
                         IconButton(onClick = vm::refresh, enabled = !vm.busy) { Icon(Icons.Default.Refresh, "Refresh classes") }
                     }
+                    if (signedIn && !gated && top is Screen.Pdf) {
+                        if (vm.downloading) {
+                            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(Modifier.size(20.dp), color = colors.onHeader, strokeWidth = 2.dp)
+                            }
+                        } else {
+                            IconButton(onClick = { vm.downloadMaterial(top) }, modifier = Modifier.testTag("downloadDocument")) { Icon(DownloadIcon, "Download") }
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent, titleContentColor = colors.onHeader,
@@ -129,9 +175,19 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
         },
         bottomBar = {
             if (signedIn && !gated && top == null) {
-                NavigationBar {
-                    tabs.forEachIndexed { i, item ->
-                        NavigationBarItem(selected = tab == i, onClick = { tab = i }, icon = { Icon(item.second, null) }, label = { Text(item.first) })
+                NavigationBar(containerColor = colors.card) {
+                    tabs.forEach { item ->
+                        NavigationBarItem(
+                            selected = tab == item.id, onClick = { tab = item.id },
+                            icon = { Icon(item.icon, null) },
+                            label = { Text(item.label, fontSize = 11.sp, maxLines = 1, softWrap = false) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = accentSoft(),
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant, unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                            modifier = Modifier.testTag("tab-${item.label}"),
+                        )
                     }
                 }
             }
@@ -172,18 +228,28 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
                         is Screen.Attendance -> AttendanceScreen(vm, top)
                         is Screen.Feedback -> FeedbackScreen(vm, top)
                         is Screen.Quiz -> QuizScreen(vm, top)
-                        Screen.EditProfile -> ProfileScreen(vm)
                         Screen.ChangePassword -> PasswordScreen(vm, forced = false)
                     }
                     else -> when (tab) {
-                        0 -> HomeScreen(vm, onCourses = { tab = 1 }, onCalendar = { tab = 2 })
-                        1 -> CoursesScreen(vm)
-                        2 -> CalendarScreen(vm)
-                        else -> AccountScreen(vm, onNotifications)
+                        TAB_CALENDAR -> CalendarScreen(vm)
+                        TAB_THIRD -> if (vm.role == Roles.TRAINER) PayoutScreen(vm) else CertificatesScreen(vm)
+                        TAB_FOURTH -> if (vm.role == Roles.TRAINER) TrainingHoursScreen(vm) else BillingScreen(vm)
+                        TAB_ACCOUNT -> AccountScreen(vm, onNotifications)
+                        else -> MyClassesScreen(vm, onProfile = { tab = TAB_ACCOUNT }, onCalendar = { tab = TAB_CALENDAR })
                     }
                 }
             }
         }
+    }
+
+    vm.downloadProblem?.let { problem ->
+        AlertDialog(
+            onDismissRequest = { vm.downloadProblem = null },
+            title = { Text("Download") },
+            text = { Text(problem.message) },
+            confirmButton = { TextButton(onClick = { vm.downloadProblem = null }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { vm.downloadProblem = null; openLink(context, problem.url) }) { Text("Open in browser") } },
+        )
     }
 
     vm.result?.let { message ->

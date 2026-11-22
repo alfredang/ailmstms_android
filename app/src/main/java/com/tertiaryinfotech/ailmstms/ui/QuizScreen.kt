@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -124,7 +123,7 @@ private fun QuizQuestions(vm: LmsViewModel, screen: Screen.Quiz, quiz: Quiz) {
             }
         }
         item {
-            Card {
+            AppCard {
                 Column(Modifier.fillMaxWidth().padding(20.dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(question.question, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     question.options.forEachIndexed { i, option ->
@@ -183,7 +182,7 @@ private fun QuizResultContent(vm: LmsViewModel, quiz: Quiz, result: QuizResult) 
 private fun ReviewCard(number: Int, item: QuizReview) {
     val colors = LocalLmsColors.current
     val wrong = MaterialTheme.colorScheme.error
-    Card {
+    AppCard {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Question $number", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
