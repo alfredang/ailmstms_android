@@ -97,6 +97,15 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
         return startSession(data(request("/api/android/login", body, auth = false)), loginRole)
     }
 
+    /** Admin sign-in with Google: the page that starts it, for a SHA-256 [challenge] of the verifier. */
+    fun googleStartUrl(challenge: String): String = "$base/api/mobile/google-start?challenge=$challenge"
+
+    /** Trades the single-use code from the Google callback plus the verifier for a session. */
+    suspend fun googleLogin(code: String, verifier: String, loginRole: String = Roles.LEARNER): Profile {
+        val body = JSONObject().put("code", code).put("verifier", verifier)
+        return startSession(data(request("/api/mobile/google-exchange", body, auth = false)), loginRole)
+    }
+
     suspend fun passwordLogin(email: String, password: String, loginRole: String = Roles.LEARNER): PasswordLogin {
         val data = data(request("/api/mobile/login", JSONObject().put("email", email).put("password", password), auth = false))
         val profile = startSession(data, loginRole)

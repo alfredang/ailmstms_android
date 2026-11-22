@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(incomingLink) {
                 incomingLink?.let {
                     incomingLink = null
-                    vm.openLink(it)
+                    if (it.startsWith("tiatms://")) vm.onAuthCallback(android.net.Uri.parse(it)) else vm.openLink(it)
                 }
             }
             val dark = resolveDark(vm.themeMode, isSystemInDarkTheme())

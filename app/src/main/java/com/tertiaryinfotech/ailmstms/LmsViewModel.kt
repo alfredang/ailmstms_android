@@ -361,6 +361,39 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         afterSignIn(repo.login(email.trim().lowercase(), otp, chosen), chosen)
     }
 
+    // ── Admin sign-in with Google ──
+    // The app sends the hash of a random verifier; the server answers at tiatms://auth with a
+    // single-use code, which only this verifier can exchange for a session.
+    private var googleVerifier: String? = null
+
+    /** Remembers a new verifier and returns the page to open in the browser. */
+    fun startGoogleSignIn(): String {
+        val bytes = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        val verifier = bytes.joinToString("") { "%02x".format(it) }
+        val challenge = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(verifier.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+        googleVerifier = verifier
+        error = null
+        return repo.googleStartUrl(challenge)
+    }
+
+    /** The server's answer: `tiatms://auth?code=…` or `?error=…`. Ignored unless a sign-in is pending. */
+    fun onAuthCallback(uri: android.net.Uri) {
+        if (uri.scheme != "tiatms" || uri.host != "auth") return
+        val verifier = googleVerifier ?: return
+        googleVerifier = null
+        val code = uri.getQueryParameter("code")
+        val message = uri.getQueryParameter("error")
+        if (message != null || code.isNullOrEmpty()) {
+            error = message?.takeIf { it.isNotBlank() } ?: "Google sign-in did not complete. Please try again."
+            return
+        }
+        action {
+            val chosen = loginRole
+            afterSignIn(repo.googleLogin(code, verifier, chosen), chosen)
+        }
+    }
+
     fun loginWithPassword() = action {
         val chosen = loginRole
         val signedIn = repo.passwordLogin(email.trim().lowercase(), password, chosen)

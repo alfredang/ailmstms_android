@@ -31,6 +31,13 @@
                 <data android:host="lms-tms.tertiaryinfotech.com" />
                 <data android:pathPrefix="/quiz/" />
             </intent-filter>
+            <!-- Admin sign-in with Google: the server returns to tiatms://auth?code=... -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tiatms" android:host="auth" />
+            </intent-filter>
         </activity>
         <!-- Hands a downloaded material to the system share sheet (save, print, send). -->
         <provider

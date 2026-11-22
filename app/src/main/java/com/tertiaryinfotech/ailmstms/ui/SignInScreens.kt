@@ -213,6 +213,11 @@ fun LoginScreen(vm: LmsViewModel) {
                 TextButton(onClick = { openLink(context, PRIVACY_URL) }, colors = quiet) { Text("Privacy policy", fontSize = 13.sp) }
                 TextButton(onClick = { openLink(context, SUPPORT_WHATSAPP) }, colors = quiet) { Text("Need help?", fontSize = 13.sp) }
             }
+            // Deliberately quiet: staff know it is here.
+            TextButton(
+                onClick = { openLink(context, vm.startGoogleSignIn()) }, enabled = !vm.busy, colors = quiet,
+                modifier = Modifier.testTag("adminSignIn"),
+            ) { Text("Admin sign-in", fontSize = 13.sp) }
         }
     }
 }
