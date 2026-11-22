@@ -116,8 +116,8 @@ class AppFlowTest {
         compose.onNodeWithText("Done").performClick()
 
         // Learner home
-        waitForText("Welcome")
-        compose.onNodeWithText("Alex").assertExists()
+        waitForText("ALEX TAN")
+        compose.onNodeWithText("Welcome back").assertExists()
         compose.onNodeWithText("My Profile").assertExists()
         compose.onAllNodes(hasTestTag("viewAsPicker")).assertCountEquals(0)
         compose.onNodeWithText("TIA TMS").assertExists()
@@ -240,7 +240,7 @@ class AppFlowTest {
         compose.onNodeWithTag("loginRole-trainer").performClick()
         compose.onNodeWithText("See the classes you teach, attendance, payout and training hours.").assertExists()
         compose.onNodeWithText("Explore demo").performScrollTo().performClick()
-        waitForText("Welcome")
+        waitForText("ALEX TAN")
         compose.onNodeWithText("Classes you teach", ignoreCase = true).assertExists()
         capture("16-trainer-home")
 

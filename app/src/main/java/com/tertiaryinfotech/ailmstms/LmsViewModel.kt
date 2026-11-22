@@ -114,7 +114,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     /** The "Sign in as" choice on the sign-in screen. It becomes [role] at sign-in and returns to Learner at sign-out. */
     var loginRole by mutableStateOf(Roles.LEARNER); private set
 
-    /** The roles offered in the "Viewing as" switcher: more than one only for the owner account. */
+    /** The roles offered in the "View as" switcher: more than one only for the owner account. */
     val availableRoles: List<String>
         get() = if (isDemo) listOf(role) else Roles.available(profile?.email, profile?.roles.orEmpty(), role)
     val canSwitchRole: Boolean get() = availableRoles.size > 1
@@ -391,7 +391,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         (stack.lastOrNull() as? Screen.ClassRoom)?.let { loadClass(it.id, quiet = true) }
     }
 
-    /** The owner account's "Viewing as" switcher. Every other account keeps the role it signed in with. */
+    /** The owner account's "View as" switcher. Every other account keeps the role it signed in with. */
     fun switchRole(value: String) = action {
         if (value !in availableRoles || value == role) return@action
         if (!isDemo) repo.store.role = value

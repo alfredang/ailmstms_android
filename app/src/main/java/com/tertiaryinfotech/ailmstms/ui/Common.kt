@@ -137,7 +137,14 @@ val ClockIcon by lazy { icon("Clock", "M12,2a10,10 0 1,0 0,20a10,10 0 1,0 0,-20z
 val PaymentsIcon by lazy { icon("Payments", "M2,6h20v12H2z M4,8v8h16V8z M12,9.5a2.5,2.5 0 1,0 0,5a2.5,2.5 0 1,0 0,-5z") }
 val CertificateIcon by lazy { icon("Certificate", "M12,2a7,7 0 1,0 0,14a7,7 0 1,0 0,-14z M12,5a4,4 0 1,1 0,8a4,4 0 1,1 0,-8z M8,17h8v5l-4,-2l-4,2z") }
 val CreditCardIcon by lazy { icon("CreditCard", "M2,5h20v14H2z M4,7v2h16V7z M4,12v5h16v-5z M6,14h5v1.5H6z") }
-val SwapIcon by lazy { icon("Swap", "M7,7h10.2l-2.6,-2.6L16,3l5,5l-5,5l-1.4,-1.4L17.2,9H7z M17,15H6.8l2.6,-2.6L8,11l-5,5l5,5l1.4,-1.4L6.8,17H17z") }
+val EyeIcon by lazy {
+    icon(
+        "Eye",
+        "M12,4.5C7,4.5 2.73,7.61 1,12c1.73,4.39 6,7.5 11,7.5s9.27,-3.11 11,-7.5c-1.73,-4.39 -6,-7.5 -11,-7.5z " +
+            "M12,17c-2.76,0 -5,-2.24 -5,-5s2.24,-5 5,-5s5,2.24 5,5s-2.24,5 -5,5z M12,9c-1.66,0 -3,1.34 -3,3s1.34,3 3,3s3,-1.34 3,-3s-1.34,-3 -3,-3z",
+    )
+}
+val UnfoldIcon by lazy { icon("Unfold", "M12,5.83L15.17,9l1.41,-1.41L12,3L7.41,7.59L8.83,9z M12,18.17L8.83,15l-1.41,1.41L12,21l4.59,-4.59L15.17,15z") }
 val ChatIcon by lazy { icon("Chat", "M4,4h16v12H9l-5,4z M6,6v9.8L8.3,14H18V6z") }
 val LinkIcon by lazy { icon("Link", "M4,12a4,4 0 0,1 4,-4h3v2H8a2,2 0 0,0 0,4h3v2H8a4,4 0 0,1 -4,-4z M13,8h3a4,4 0 0,1 0,8h-3v-2h3a2,2 0 0,0 0,-4h-3z M8,11h8v2H8z") }
 
