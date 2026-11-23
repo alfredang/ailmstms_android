@@ -239,7 +239,7 @@ private fun SignatureForm(
     Column(Modifier.fillMaxSize().statusBarsPadding().imePadding().testTag("signature-setup")) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = vm::closeSigner, enabled = !saving) { Text("Cancel") }
-            Text(if (signing) "Sign Summary Record" else kind.title, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            Text(if (signing) vm.signerTitle else kind.title, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
             TextButton(
                 onClick = {
                     unreadable = false
@@ -266,7 +266,7 @@ private fun SignatureForm(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     when {
-                        signing -> "Your signature, name and today's date are stamped on the Assessment Summary Record" +
+                        signing -> "Your signature, name and today's date are stamped on ${vm.signerWhat}" +
                             if (count > 1) " of $count learners." else "."
                         hadSignature && strokes.isEmpty() -> "Leave blank to keep your saved signature."
                         else -> "Sign inside the box."

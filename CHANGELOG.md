@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.1] — 2026-11-23 · versionCode 8
+
+### Added
+- Signatures are drawn on the phone each time a learner or trainer signs the Assessment Summary Record.
+- Trainers: post class announcements with a photo or file; an Assessment Grading roster with WA / PP submission ticks, a TRAQOM tick, and the assessor signature on submitted files; ACLP, DDDPL and TAEPP badges with toggles, domain expertise and skill tags; My Certificates in Account.
+- Learners: certificates to view and download; a Support tab (feedback emailed to the academy, email, tel, WhatsApp, address) in place of Billing.
+- Class status (Confirmed, Pending, Cancelled) on every class card; cancelled classes are listed.
+- Developer: funding validity period, Active / Expired chip and an alert when funding ends within 3 months; no Calendar tab.
+
+### Changed
+- For trainers, Assessment Summary Record comes after Assessment Grading.
+
 ## [1.3.0] — 2026-11-23 · versionCode 7
 
 ### Added

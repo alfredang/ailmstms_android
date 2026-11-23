@@ -661,8 +661,22 @@ data class StaffCourse(
     val fundingValidityEnd: String,
     val upcomingRuns: Int,
     val nextRun: String,
+    val fundingValidityStart: String = "",
 ) {
     val fundingEnd: LocalDate? get() = parseDay(fundingValidityEnd)
+
+    /** Days until funding ends, when that is within 3 months (90 days) and not yet past. */
+    fun expiringInDays(today: LocalDate = LocalDate.now(SGT)): Int? {
+        if (expired(today)) return null
+        val end = fundingEnd ?: return null
+        val days = java.time.temporal.ChronoUnit.DAYS.between(today, end).toInt()
+        return if (days <= 90) days.coerceAtLeast(0) else null
+    }
+
+    /** "Funding validity: 30 Jan 2025 – 29 Jan 2027"; null when neither date is known. */
+    val fundingValidityText: String?
+        get() = if (fundingValidityStart.isBlank() && fundingValidityEnd.isBlank()) null
+        else "Funding validity: " + listOf(fundingValidityStart, fundingValidityEnd).joinToString(" – ") { if (it.isBlank()) "N/A" else longDay(it) }
 
     fun expired(today: LocalDate = LocalDate.now(SGT)): Boolean =
         title.contains("(expired)", true) || (fundingEnd?.isBefore(today) ?: false)
@@ -676,11 +690,172 @@ data class StaffCourse(
         fun parse(o: JSONObject) = StaffCourse(
             o.text("id"), o.text("title"), o.text("code"), o.text("courseType"), o.text("status"), o.text("tscTitle"), o.text("tscCode"),
             o.number("trainingHours"), o.number("assessmentHours"), o.text("fundingValidityEnd"), o.optInt("upcomingRuns"), o.text("nextRun"),
+            o.text("fundingValidityStart"),
         )
 
         fun parseAll(o: JSONObject): List<StaffCourse> = o.array("courses").objects().map(::parse)
     }
 }
+
+/** "Funding expires today" / "Funding expires in 1 day" / "Funding expires in N days". */
+fun fundingExpiresText(days: Int): String =
+    if (days == 0) "Funding expires today" else "Funding expires in $days day${if (days == 1) "" else "s"}"
+
+/** The class status as the TMS records it, for the chip on every class card: blank reads Pending, any cancel reads Cancelled. */
+fun classStatusLabel(status: String): String {
+    val s = status.trim()
+    return when {
+        s.isEmpty() -> "Pending"
+        s.lowercase().startsWith("cancel") -> "Cancelled"
+        else -> s
+    }
+}
+
+// ---------------------------------------------------------------- certificates
+
+/** One class's certificate (GET /api/mobile/certificates); [certificateUrl] is null until it is issued. */
+data class Certificate(
+    val id: String,
+    val courseId: String,
+    val title: String,
+    val code: String,
+    val runCode: String,
+    val startDate: String,
+    val endDate: String,
+    val result: String,
+    val certificateUrl: String?,
+) {
+    companion object {
+        fun parseAll(o: JSONObject): List<Certificate> = o.array("certificates").objects().map {
+            Certificate(
+                it.text("id"), it.text("courseID"), it.text("title"), it.text("code"), it.text("runCode"),
+                it.text("startDate"), it.text("endDate"), it.text("result"), it.link("certificateURL"),
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------- support and trainer credentials
+
+/** The academy's contacts (GET /api/mobile/support). */
+data class SupportInfo(val email: String?, val phone: String?, val whatsapp: String?, val address: String?, val feedback: Boolean) {
+    companion object {
+        val SAMPLE = SupportInfo(
+            "enquiry@tertiaryinfotech.com", "61000613", "+65 8866 6375",
+            "12 Woodlands Square, Woods Square Tower 1, Singapore 737715", true,
+        )
+
+        fun parse(o: JSONObject) = SupportInfo(
+            o.text("email").trim().ifBlank { null }, o.text("phone").trim().ifBlank { null }, o.text("whatsapp").trim().ifBlank { null },
+            o.text("address").trim().ifBlank { null }, o.optBoolean("feedback"),
+        )
+
+        /** A phone number's digits for tel: and wa.me; a bare 8-digit Singapore number gets 65. */
+        fun digits(phone: String): String = phone.filter(Char::isDigit).let { if (it.length == 8) "65$it" else it }
+    }
+}
+
+/** The trainer's credentials (GET/POST /api/mobile/trainer-profile). */
+data class TrainerCredentials(
+    val aclp: Boolean,
+    val dddpl: Boolean,
+    val taepp: Boolean,
+    val areasOfExpertise: List<String>,
+    val skillsTags: List<String>,
+) {
+    /** The badges to show, in a fixed order. */
+    val badges: List<String> get() = listOfNotNull("ACLP".takeIf { aclp }, "DDDPL".takeIf { dddpl }, "TAEPP".takeIf { taepp })
+
+    companion object {
+        fun parse(o: JSONObject) = TrainerCredentials(
+            o.optBoolean("aclp"), o.optBoolean("dddpl"), o.optBoolean("taepp"), o.strings("areasOfExpertise"), o.strings("skillsTags"),
+        )
+    }
+}
+
+/** A tag added to a list, ignoring blanks and case-insensitive duplicates; null when nothing changes. */
+fun addTag(tags: List<String>, raw: String): List<String>? {
+    val tag = raw.trim()
+    if (tag.isEmpty() || tags.any { it.equals(tag, ignoreCase = true) }) return null
+    return tags + tag
+}
+
+// ---------------------------------------------------------------- Assessment Grading
+
+/** The website's assessment methods: abbreviation and name. */
+object AssessmentMethod {
+    val INFO = mapOf(
+        "writtenAssessment" to ("WA" to "Written Assessment"),
+        "practicalExam" to ("PP" to "Practical Performance"),
+        "caseStudy" to ("CS" to "Case Study"),
+        "rolePlay" to ("RP" to "Role Play"),
+        "oralQuestioning" to ("OQ" to "Oral Questioning"),
+        "project" to ("PJ" to "Project"),
+        "assignment" to ("AS" to "Assignment"),
+    )
+    val DEFAULT = listOf("writtenAssessment", "practicalExam")
+
+    fun abbr(method: String): String = INFO[method]?.first ?: method
+    fun label(method: String): String = INFO[method]?.second ?: method
+
+    /** "WA = Written Assessment · PP = Practical Performance · Signed = … " — the grading footer. */
+    fun legend(methods: List<String>): String =
+        methods.joinToString(" · ") { "${abbr(it)} = ${label(it)}" } +
+            " · Signed = your assessor signature stamped on the learner's submitted files. TRAQOM is ticked by you: SSG does not report completion."
+}
+
+/** One learner on the trainer's grading roster (GET /api/trainer/class-students?withMeta=1). */
+data class RosterStudent(
+    val enrolmentId: String,
+    val userId: String,
+    val name: String,
+    val competentStatus: String,
+    val source: String,
+    val isCompetent: Boolean?,
+    val submittedAssessments: List<String>,
+    val traqomCompleted: Boolean,
+    val submissionCount: Int,
+    val assessorSigned: Boolean,
+    val folderUrl: String?,
+    val enrolmentIdList: List<String> = emptyList(),
+    val userIdList: List<String> = emptyList(),
+) {
+    val enrolmentIds: List<String> get() = enrolmentIdList.ifEmpty { listOf(enrolmentId) }
+    val userIds: List<String> get() = userIdList.ifEmpty { listOfNotNull(userId.ifBlank { null }) }
+    fun submitted(method: String): Boolean = method in submittedAssessments
+    val hasSubmissions: Boolean get() = submissionCount > 0 || submittedAssessments.isNotEmpty()
+
+    /** Can be signed (or unsigned) as assessor: something was submitted and the learner has an account. */
+    val signable: Boolean get() = hasSubmissions && userIds.isNotEmpty()
+
+    /** The Not Yet Competent button is off once the learner is already graded so. */
+    val notYetCompetent: Boolean get() = isCompetent == false && competentStatus.contains("not", ignoreCase = true)
+    val resultText: String get() = if (competentStatus.isNotBlank()) "Result: $competentStatus" else "Result: not graded"
+
+    companion object {
+        fun parse(o: JSONObject) = RosterStudent(
+            o.text("enrolment_id"), o.text("user_id"), o.text("student_name").ifBlank { "Learner" }, o.text("competent_status"),
+            o.text("source").ifBlank { "manual" }, if (o.has("is_competent") && !o.isNull("is_competent")) o.optBoolean("is_competent") else null,
+            o.strings("submitted_assessments"), o.optBoolean("traqom_completed"), o.optInt("submission_count"), o.optBoolean("assessor_signed"),
+            o.link("assessment_folder_url"), o.strings("enrolment_ids"), o.strings("user_ids"),
+        )
+    }
+}
+
+data class Roster(val students: List<RosterStudent>, val methods: List<String>) {
+    /** Learners with submissions still to sign, for "Sign all N submitted". */
+    val unsigned: List<RosterStudent> get() = students.filter { it.signable && !it.assessorSigned }
+
+    companion object {
+        fun parse(o: JSONObject) = Roster(
+            o.array("students").objects().map(RosterStudent::parse),
+            o.strings("assessment_methods").ifEmpty { AssessmentMethod.DEFAULT },
+        )
+    }
+}
+
+/** The announcement composer's attachment limit, as on the website. */
+const val MAX_ANNOUNCEMENT_BYTES = 50L * 1024 * 1024
 
 // ---------------------------------------------------------------- attendance
 

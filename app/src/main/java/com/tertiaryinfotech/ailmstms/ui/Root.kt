@@ -79,7 +79,8 @@ private const val TAB_ACCOUNT = 4
 private fun tabsFor(role: String): List<TabSpec> = buildList {
     val staff = Roles.isStaff(role)
     add(if (staff) TabSpec(TAB_CLASSES, "Home", Icons.Default.Home) else TabSpec(TAB_CLASSES, "My Classes", SchoolIcon))
-    add(TabSpec(TAB_CALENDAR, "Calendar", Icons.Default.DateRange))
+    // Developers have no classes to schedule, so no Calendar tab.
+    if (role != Roles.DEVELOPER) add(TabSpec(TAB_CALENDAR, "Calendar", Icons.Default.DateRange))
     if (staff) {
         add(TabSpec(TAB_THIRD, "Courses", BooksIcon))
     } else if (role == Roles.TRAINER) {
@@ -87,7 +88,7 @@ private fun tabsFor(role: String): List<TabSpec> = buildList {
         add(TabSpec(TAB_FOURTH, "Hours", ClockIcon))
     } else {
         add(TabSpec(TAB_THIRD, "Certificates", CertificateIcon))
-        add(TabSpec(TAB_FOURTH, "Billing", CreditCardIcon))
+        add(TabSpec(TAB_FOURTH, "Support", SupportIcon))
     }
     add(TabSpec(TAB_ACCOUNT, "Account", Icons.Default.AccountCircle))
 }
@@ -232,6 +233,8 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
                         is Screen.Attendance -> AttendanceScreen(vm, top)
                         is Screen.Feedback -> FeedbackScreen(vm, top)
                         is Screen.Quiz -> QuizScreen(vm, top)
+                        is Screen.Grading -> GradingScreen(vm, top)
+                        Screen.Certificates -> CertificatesScreen(vm, embedded = true)
                         Screen.ChangePassword -> PasswordScreen(vm, forced = false)
                     }
                     vm.isStaffView -> when (tab) {
@@ -243,7 +246,7 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
                     else -> when (tab) {
                         TAB_CALENDAR -> CalendarScreen(vm)
                         TAB_THIRD -> if (vm.role == Roles.TRAINER) PayoutScreen(vm) else CertificatesScreen(vm)
-                        TAB_FOURTH -> if (vm.role == Roles.TRAINER) TrainingHoursScreen(vm) else BillingScreen(vm)
+                        TAB_FOURTH -> if (vm.role == Roles.TRAINER) TrainingHoursScreen(vm) else SupportScreen(vm)
                         TAB_ACCOUNT -> AccountScreen(vm, onNotifications)
                         else -> MyClassesScreen(vm, onProfile = { tab = TAB_ACCOUNT }, onCalendar = { tab = TAB_CALENDAR })
                     }

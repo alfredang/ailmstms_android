@@ -179,7 +179,7 @@ class RepositoryTest {
         store.token = "lms_abc"
         server.enqueue(json("""{"courses":[{"id":"c1","title":"AI","code":"TGS","runCode":"RUN-9","classStatus":"Confirmed","slidesURL":"https://example.com/a.pdf"}],"sessions":[{"id":"s1","courseID":"c1","title":"AI","startDate":"20261116","startTime":"09:00","endTime":"17:00"}]}"""))
         val d = repo.dashboard("trainer")
-        assertEquals("/api/android/dashboard?role=trainer", server.takeRequest().path)
+        assertEquals("/api/android/dashboard?role=trainer&includeCancelled=1", server.takeRequest().path)
         assertEquals("RUN-9", d.courses[0].runCode)
         assertEquals("2026-11-16", d.sessions[0].date.toString())
     }

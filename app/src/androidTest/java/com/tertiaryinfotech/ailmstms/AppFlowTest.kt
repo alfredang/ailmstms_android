@@ -209,8 +209,124 @@ class AppFlowTest {
         section("Assessment Grading")
         inClassTag("grading")
         compose.onNodeWithTag("grading").performClick()
-        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("assessments")).fetchSemanticsNodes().isNotEmpty() }
+        waitForGrading()
         back()
+    }
+
+    private fun waitForGrading() =
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("grading-tiles")).fetchSemanticsNodes().isNotEmpty() }
+
+    /** Learner: class status chips, Certificates (view in the app) and Support. */
+    @Test
+    fun learnerPagesDemo() {
+        demoAs("learner")
+        waitForText("ALEX TAN")
+        // Every class card shows its status, a cancelled class included.
+        compose.onNodeWithTag("my-classes").performScrollToNode(hasText("Cloud Fundamentals", substring = true))
+        compose.onAllNodesWithText("Cancelled").onFirst().assertExists()
+        compose.onAllNodesWithText("Pending").onFirst().assertExists()
+        compose.onAllNodesWithText("Confirmed").onFirst().assertExists()
+        capture("40-learner-status-chips")
+
+        tab("Certificates")
+        waitForText("Certificate not issued yet")
+        compose.onAllNodesWithText("Classes").onFirst().assertExists()
+        capture("41-learner-certificates")
+        compose.onNodeWithTag("certificates").performScrollToNode(hasTestTag("open-certificate-cert-1"))
+        compose.onNodeWithTag("open-certificate-cert-1").performClick()
+        waitForText("Page 1 of 3")
+        compose.onNodeWithContentDescription("Download").assertExists()
+        back()
+
+        tab("Support")
+        waitForText("Send feedback")
+        compose.onNodeWithTag("support-send").assertIsNotEnabled()
+        compose.onNodeWithTag("support-subject").performTextReplacement("Cannot open my slides")
+        compose.onNodeWithTag("support-message").performTextReplacement("The Learner Slides link shows an error.")
+        compose.onNodeWithTag("support-send").assertIsEnabled().performClick()
+        waitForText("Sent (sample). Sign in with your account to send feedback.")
+        compose.onNodeWithText("enquiry@tertiaryinfotech.com").performScrollTo().assertExists()
+        compose.onNodeWithText("+65 8866 6375").performScrollTo().assertExists()
+        compose.onNodeWithText("Open in Google Maps").performScrollTo().assertExists()
+        capture("42-learner-support")
+    }
+
+    /** Trainer: announcements composer and delete, the grading roster, credentials and My Certificates. */
+    @Test
+    fun trainerPagesDemo() {
+        demoAs("trainer")
+        waitForText("ALEX TAN")
+        openClass()
+        section("Announcements")
+        inClassTag("announcement-text")
+        compose.onNodeWithTag("announcement-post").assertIsNotEnabled()
+        compose.onNodeWithTag("announcement-text").performTextReplacement("Lab room changed to 3-01")
+        compose.onNodeWithTag("announcement-photo").assertExists()
+        compose.onNodeWithTag("announcement-file").assertExists()
+        compose.onNodeWithTag("announcement-post").assertIsEnabled().performClick()
+        inClass("Lab room changed to 3-01")
+        capture("43-trainer-announcement")
+        compose.onAllNodes(hasText("Delete")).onFirst().performClick()
+        waitForText("Delete this post?")
+        compose.onNodeWithTag("confirm-delete-post").performClick()
+        compose.waitUntil(8000) { compose.onAllNodesWithText("Lab room changed to 3-01").fetchSemanticsNodes().isEmpty() }
+
+        // Assessment Grading
+        section("Assessment Grading")
+        inClassTag("grading")
+        compose.onNodeWithTag("grading").performClick()
+        waitForGrading()
+        compose.onNodeWithText("WA submitted").assertExists()
+        compose.onNodeWithText("3/3").assertExists()
+        compose.onNodeWithText("PP submitted").assertExists()
+        capture("44-trainer-grading")
+        compose.onNodeWithTag("sign-all-submissions").performClick()
+        waitForSignSheet2("Sign Assessments")
+        compose.onNodeWithText("every file the learner submitted of 2 learners.", substring = true).assertExists()
+        compose.onNodeWithTag("confirm-signature").assertIsNotEnabled()
+        compose.onNodeWithTag("signature-pad").performTouchInput { swipe(Offset(width * 0.1f, height * 0.6f), Offset(width * 0.9f, height * 0.4f), 200) }
+        compose.onNodeWithTag("confirm-signature").assertIsEnabled().performClick()
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("signature-setup")).fetchSemanticsNodes().isEmpty() }
+        // Both learners are signed in turn; the button goes once none is left to sign.
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("sign-all-submissions")).fetchSemanticsNodes().isEmpty() }
+        // Unticking Signed asks first.
+        compose.onNodeWithTag("grading-roster").performScrollToNode(hasTestTag("sign-d2"))
+        compose.onNodeWithTag("sign-d2").performClick()
+        waitForText("Remove your signature from Priya Nair (sample)'s files?")
+        compose.onNodeWithTag("confirm-unsign").performClick()
+        compose.onNodeWithTag("grading-roster").performScrollToNode(hasTestTag("traqom-d1"))
+        compose.onNodeWithTag("traqom-d1").performClick()
+        compose.onNodeWithTag("grading-roster").performScrollToNode(hasTestTag("nyc-d3"))
+        compose.onNodeWithTag("nyc-d3").performClick()
+        waitForText("Mark Wei Ming (sample) as Not Yet Competent?")
+        compose.onNodeWithTag("confirm-grade").performClick()
+        compose.waitUntil(8000) { compose.onAllNodesWithText("Result: Not Yet Competent").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("grading-roster").performScrollToNode(hasTestTag("grading-tiles"))
+        compose.onAllNodesWithText("2/3").onFirst().assertExists()
+        capture("45-trainer-grading-done")
+        back()
+        back()
+
+        // Account: credential badges and toggles, tags, My Certificates
+        tab("Account")
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("badge-ACLP")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("credential-dddpl").performScrollTo().performClick()
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("badge-DDDPL")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("add-skillsTags").performScrollTo().performTextReplacement("Power BI")
+        compose.onNodeWithTag("add-skillsTags-button").performClick()
+        compose.waitUntil(8000) { compose.onAllNodes(hasContentDescription("Remove Power BI")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("Remove Python").performScrollTo().performClick()
+        compose.waitUntil(8000) { compose.onAllNodes(hasContentDescription("Remove Python")).fetchSemanticsNodes().isEmpty() }
+        capture("46-trainer-credentials")
+        compose.onNodeWithText("Certificates from courses you attended as a learner.").performScrollTo().assertExists()
+        compose.onNodeWithText("My Certificates").performScrollTo().performClick()
+        waitForText("Certificate not issued yet")
+        back()
+    }
+
+    private fun waitForSignSheet2(title: String) {
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("signature-pad")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(title).assertExists()
     }
 
     @Test
@@ -255,7 +371,7 @@ class AppFlowTest {
 
         tab("Courses")
         waitForText("Search title, course code or TSC code")
-        compose.onNodeWithTag("course-filter-2").performClick()
+        compose.onNodeWithTag("course-filter-3").performClick()
         waitForText("Legacy Office Skills (Expired)")
         compose.onNodeWithText("Legacy Office Skills (Expired)").performClick()
         waitForText("Duration")
@@ -265,9 +381,16 @@ class AppFlowTest {
         demoAs("developer")
         waitForText("Developer")
         compose.onNodeWithTag("tab-Home").performClick()
-        waitForText("With classes")
+        waitForText("Expiring ≤ 3 mo")
+        // Developers have no Calendar tab.
+        compose.onAllNodes(hasTestTag("tab-Calendar")).assertCountEquals(0)
+        compose.onNodeWithTag("staff-home").performScrollToNode(hasTestTag("course-c2"))
+        compose.onNodeWithText("Funding expires in 45 days").assertExists()
         compose.onNodeWithTag("staff-home").performScrollToNode(hasText("Building AI Applications"))
+        compose.onAllNodesWithText("Active").onFirst().assertExists()
         capture("25-developer-home")
+        compose.onNodeWithTag("course-filter-2").performClick()
+        waitForText("1 courses")
     }
 
     @Test
@@ -429,12 +552,12 @@ class AppFlowTest {
         waitForClass()
         back()
 
-        // Learner tabs that wait for their data
+        // Learner tabs: Certificates and Support (Billing was removed)
+        compose.onAllNodes(hasTestTag("tab-Billing")).assertCountEquals(0)
         tab("Certificates")
-        waitForText("Coming soon")
-        compose.onNodeWithText("Your course certificates will appear here once they are issued.").assertExists()
-        tab("Billing")
-        compose.onNodeWithText("Your invoices and payment history will appear here.").assertExists()
+        waitForText("Certificate not issued yet")
+        tab("Support")
+        waitForText("Send feedback")
 
         // Account, reached from the home header: one page with contact, profile, theme, password, reminders
         tab("My Classes")
@@ -480,6 +603,7 @@ class AppFlowTest {
         compose.onNodeWithText("Your training hours for the classes you teach will appear here.").assertExists()
         tab("Account")
         compose.onNodeWithText("Trainer").assertExists()
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("trainer-credentials")).fetchSemanticsNodes().isNotEmpty() }
 
         // Trainer: QR code, manual attendance, results
         openClass()
@@ -538,14 +662,12 @@ class AppFlowTest {
         section("Assessment Grading")
         inClassTag("grading")
         compose.onNodeWithTag("grading").performClick()
-        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("assessments")).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("assessments").performScrollToNode(hasTestTag("competent-demo-e2"))
-        compose.onNodeWithTag("competent-demo-e2").performClick()
-        waitForText("Mark as Competent?")
-        compose.onNodeWithText("Confirm").performClick()
-        compose.waitUntil(8000) { compose.onAllNodesWithText("Mark as Competent?").fetchSemanticsNodes().isEmpty() }
-        waitForText("Chen Mei Ling: Competent")
-        waitUntilGone("Chen Mei Ling: Competent")
+        waitForGrading()
+        compose.onNodeWithTag("grading-roster").performScrollToNode(hasTestTag("competent-d1"))
+        compose.onNodeWithTag("competent-d1").performClick()
+        waitForText("Mark Jamie Lim (sample) as Competent?")
+        compose.onNodeWithTag("confirm-grade").performClick()
+        compose.waitUntil(8000) { compose.onAllNodesWithText("Result: Competent").fetchSemanticsNodes().size >= 2 }
         capture("13-trainer-results")
         back()
         back()

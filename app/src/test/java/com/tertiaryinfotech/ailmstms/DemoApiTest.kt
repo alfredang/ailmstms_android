@@ -31,7 +31,8 @@ class DemoApiTest {
     @Test
     fun learnerSeesClassesWithMaterialsAssessmentsAndFeedback() = runBlocking {
         val dashboard = api.dashboard("learner")
-        assertEquals(2, dashboard.courses.size)
+        assertEquals(3, dashboard.courses.size)
+        assertEquals(listOf("Confirmed", "Pending", "Cancelled"), dashboard.courses.map { it.classStatus })
         assertTrue(dashboard.sessions.all { s -> dashboard.courses.any { it.id == s.courseId } })
         val detail = api.classDetail("demo-ai", "learner")
         assertEquals(3, detail.materials.size)

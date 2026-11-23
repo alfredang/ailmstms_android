@@ -92,14 +92,4 @@ fun TrainingHoursScreen(@Suppress("UNUSED_PARAMETER") vm: LmsViewModel) {
     ComingSoon("hours", "Training hours", ClockIcon, "Your training hours for the classes you teach will appear here.")
 }
 
-/** Learner: certificates earned, to view and download. */
-@Composable
-fun CertificatesScreen(@Suppress("UNUSED_PARAMETER") vm: LmsViewModel) {
-    ComingSoon("certificates", "Certificates", CertificateIcon, "Your course certificates will appear here once they are issued.")
-}
-
-/** Learner: invoices and payments. */
-@Composable
-fun BillingScreen(@Suppress("UNUSED_PARAMETER") vm: LmsViewModel) {
-    ComingSoon("billing", "Billing", CreditCardIcon, "Your invoices and payment history will appear here.")
-}
+// Certificates and Support now have their own screens (AccountPages.kt); Billing was removed.

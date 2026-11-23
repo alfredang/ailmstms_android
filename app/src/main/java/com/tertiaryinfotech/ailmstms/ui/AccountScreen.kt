@@ -115,6 +115,14 @@ fun AccountScreen(vm: LmsViewModel, onNotifications: (Boolean) -> Unit) {
             Footnote("Owner account only: see the app as each role. The server still checks every request.")
         }
 
+        if (vm.role == Roles.TRAINER) {
+            TrainerCredentialsSections(vm)
+            InfoCard(padding = 0.dp, modifier = Modifier.testTag("my-certificates")) {
+                MenuRow(CertificateIcon, "My Certificates") { vm.openCertificates() }
+            }
+            Footnote("Certificates from courses you attended as a learner.")
+        }
+
         SectionLabel("Contact")
         InfoCard(padding = 0.dp) {
             ContactRow(Icons.Default.Email, "Email", email) { openContact(context, "mailto:$email") }

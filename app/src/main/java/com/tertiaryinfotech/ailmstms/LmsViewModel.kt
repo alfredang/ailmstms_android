@@ -37,6 +37,13 @@ import com.tertiaryinfotech.ailmstms.data.SignerRecord
 import com.tertiaryinfotech.ailmstms.data.StaffClass
 import com.tertiaryinfotech.ailmstms.data.StaffCourse
 import com.tertiaryinfotech.ailmstms.data.StaffTrainer
+import com.tertiaryinfotech.ailmstms.data.Certificate
+import com.tertiaryinfotech.ailmstms.data.MAX_ANNOUNCEMENT_BYTES
+import com.tertiaryinfotech.ailmstms.data.Roster
+import com.tertiaryinfotech.ailmstms.data.RosterStudent
+import com.tertiaryinfotech.ailmstms.data.SupportInfo
+import com.tertiaryinfotech.ailmstms.data.TrainerCredentials
+import com.tertiaryinfotech.ailmstms.data.addTag
 import com.tertiaryinfotech.ailmstms.data.SummaryReply
 import com.tertiaryinfotech.ailmstms.data.needsSignatureSetup
 import com.tertiaryinfotech.ailmstms.data.ThemeMode
@@ -85,6 +92,16 @@ sealed interface Screen {
 
     data object ChangePassword : Screen {
         override val title = "Change password"
+    }
+
+    /** Trainer: the grading roster of a class. */
+    data class Grading(val classId: String) : Screen {
+        override val title = "Assessment Grading"
+    }
+
+    /** Trainer: certificates from courses attended as a learner (from Account). */
+    data object Certificates : Screen {
+        override val title = "My Certificates"
     }
 }
 
@@ -197,12 +214,37 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     /** The sheet is signing records now: a signature must be drawn, and the button reads "Sign". */
     var signerSigning by mutableStateOf(false); private set
     /** How many records the signature goes on. */
-    val signerCount: Int get() = pendingSign.size
+    val signerCount: Int get() = signerGrading?.size ?: pendingSign.size
     var signerState by mutableStateOf<Load<SignerRecord>>(Load.Idle); private set
     var signerSaving by mutableStateOf(false); private set
     var signerProblem by mutableStateOf<String?>(null)
     /** Who to sign for once the signature is saved: [SELF] for the learner, learner ids for the assessor. */
     private var pendingSign by mutableStateOf<List<String>>(emptyList())
+
+    /** The signing sheet's title and what the signature is stamped on (summary record or submitted files). */
+    var signerTitle by mutableStateOf("Sign Summary Record"); private set
+    var signerWhat by mutableStateOf("the Assessment Summary Record"); private set
+    /** Learners whose submitted files the drawn signature goes on ("Sign Assessments"); null for the summary record. */
+    private var signerGrading by mutableStateOf<List<RosterStudent>?>(null)
+
+    // Trainer announcements: the composer's attachment and state.
+    var announcementAttachment by mutableStateOf<AnnouncementFile?>(null); private set
+    var announcementPosting by mutableStateOf(false); private set
+    var announcementProblem by mutableStateOf<String?>(null)
+
+    // Assessment Grading roster.
+    var rosterState by mutableStateOf<Load<Roster>>(Load.Idle); private set
+    val gradingBusy = mutableStateListOf<String>()
+    var gradingProblem by mutableStateOf<String?>(null)
+
+    // Certificates, Support and the trainer's credentials.
+    var certificatesState by mutableStateOf<Load<List<Certificate>>>(Load.Idle); private set
+    var supportState by mutableStateOf<Load<SupportInfo>>(Load.Idle); private set
+    var supportSending by mutableStateOf(false); private set
+    var supportNotice by mutableStateOf<String?>(null)
+    var supportProblem by mutableStateOf<String?>(null)
+    var credentialsState by mutableStateOf<Load<TrainerCredentials>>(Load.Idle); private set
+    var credentialsProblem by mutableStateOf<String?>(null)
 
     // The trainer's Publish switches: assessments being saved and the last failure per assessment.
     val publishing = mutableStateListOf<String>()
@@ -279,6 +321,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         payoutState = Load.Idle
         resetStaff()
         resetSummary()
+        resetAccountPages()
         loginRole = Roles.LEARNER
         role = Roles.LEARNER
         isDemo = false
@@ -369,6 +412,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         pushEnabled = false
         resetStaff()
         resetSummary()
+        resetAccountPages()
         role = asRole?.takeIf { it in Roles.ALL } ?: Roles.resolve(loginRole, DemoApi.PROFILE.roles)
         profile = DemoApi.PROFILE
         userProfile = DemoApi.PROFILE_DETAIL
@@ -484,6 +528,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
             dashboard = api.dashboard(role)
         }
         if (payoutState !is Load.Idle) loadPayouts()
+        if (certificatesState !is Load.Idle) loadCertificates()
         if (isDemo) return@action
         if (repo.store.pushEnabled) PushSyncWorker.enqueue(lms)
         syncAlerts()
@@ -498,6 +543,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         role = value
         closeAll()
         payoutState = Load.Idle
+        resetAccountPages()
         resetStaff()
         dashboard = Dashboard.EMPTY
         if (!isStaffView) dashboard = api.dashboard(value)
@@ -994,9 +1040,19 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Opens the name, NRIC and signature sheet. [then] is who to sign for once it is saved. */
-    fun openSigner(kind: SignerKind, then: List<String> = emptyList(), signing: Boolean = false) {
+    fun openSigner(
+        kind: SignerKind,
+        then: List<String> = emptyList(),
+        signing: Boolean = false,
+        title: String = "Sign Summary Record",
+        what: String = "the Assessment Summary Record",
+        grading: List<RosterStudent>? = null,
+    ) {
         pendingSign = then
         signerSigning = signing
+        signerTitle = title
+        signerWhat = what
+        signerGrading = grading
         signerProblem = null
         signerSheet = kind
         signerState = Load.Loading
@@ -1017,6 +1073,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         if (signerSaving) return
         signerSheet = null
         pendingSign = emptyList()
+        signerGrading = null
     }
 
     /** Saves the signer details; [signaturePng] is null to keep the saved signature. Then signs whatever was waiting. */
@@ -1030,6 +1087,12 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
                 val then = pendingSign
                 pendingSign = emptyList()
                 signerSheet = null
+                // "Sign Assessments" from the grading roster: stamp the submitted files now.
+                signerGrading?.let { list ->
+                    signerGrading = null
+                    signSubmissions(list, true)
+                    return@launch
+                }
                 summaryRunId?.let { runId -> if (then.isNotEmpty()) sign(runId, then) else loadSummary(runId, quiet = true) }
             } catch (e: CancellationException) {
                 throw e
@@ -1041,6 +1104,331 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    // ---------------------------------------------------------------- trainer announcements
+
+    /** A photo or file picked for an announcement; read only when it is posted. */
+    class AnnouncementFile(val name: String, val mime: String, val size: Long, val photo: Boolean, val open: () -> java.io.InputStream)
+
+    private fun pickedName(uri: Uri): Pair<String, Long> {
+        var name = "Attachment"
+        var size = -1L
+        runCatching {
+            lms.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    c.getString(0)?.takeIf { it.isNotBlank() }?.let { name = it }
+                    if (!c.isNull(1)) size = c.getLong(1)
+                }
+            }
+        }
+        return name to size
+    }
+
+    /** A photo is sent as JPEG so every device can open it. */
+    fun attachPhoto(uri: Uri) {
+        announcementProblem = null
+        viewModelScope.launch {
+            try {
+                val jpeg = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val bitmap = lms.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it) }
+                        ?: throw java.io.IOException()
+                    val out = java.io.ByteArrayOutputStream()
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+                    bitmap.recycle()
+                    out.toByteArray()
+                }
+                if (jpeg.size > MAX_ANNOUNCEMENT_BYTES) {
+                    announcementProblem = "That photo is larger than 50 MB."
+                    return@launch
+                }
+                val stamp = LocalDate.now(SGT).toString()
+                announcementAttachment = AnnouncementFile("Photo $stamp.jpg", "image/jpeg", jpeg.size.toLong(), true) { jpeg.inputStream() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                announcementProblem = "That photo could not be read. Please choose another."
+            }
+        }
+    }
+
+    fun attachFile(uri: Uri) {
+        announcementProblem = null
+        val (name, size) = pickedName(uri)
+        if (size > MAX_ANNOUNCEMENT_BYTES) {
+            announcementProblem = "That file is larger than 50 MB. Upload a smaller file, or paste a link to it in the message."
+            return
+        }
+        val mime = lms.contentResolver.getType(uri) ?: "application/octet-stream"
+        announcementAttachment = AnnouncementFile(name, mime, size, false) {
+            lms.contentResolver.openInputStream(uri) ?: throw java.io.IOException("That file could not be read.")
+        }
+    }
+
+    fun clearAttachment() {
+        announcementAttachment = null
+    }
+
+    /** Posts the trainer's announcement, then reloads the class. Returns through [announcementPosting]. */
+    fun postAnnouncement(detail: ClassDetail, message: String, onPosted: () -> Unit) {
+        if (announcementPosting || (message.isBlank() && announcementAttachment == null)) return
+        announcementPosting = true
+        announcementProblem = null
+        val file = announcementAttachment
+        viewModelScope.launch {
+            try {
+                val postedBy = userProfile?.fullName?.takeIf { it.isNotBlank() } ?: profile?.name?.takeIf { it.isNotBlank() } ?: "Trainer"
+                api.postAnnouncement(detail.id, postedBy, message, file?.let { UploadSource(it.name, it.mime, it.size, it.open) })
+                announcementAttachment = null
+                onPosted()
+                loadClass(detail.id, quiet = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val problem = failure(e)
+                if (profile != null) announcementProblem = problem
+            } finally {
+                announcementPosting = false
+            }
+        }
+    }
+
+    fun deleteAnnouncement(detail: ClassDetail, id: String) = work {
+        api.deleteAnnouncement(id)
+        notice = "Post deleted"
+        loadClass(detail.id, quiet = true)
+    }
+
+    // ---------------------------------------------------------------- Assessment Grading
+
+    fun openGrading(classId: String) {
+        stack.add(Screen.Grading(classId))
+        rosterState = Load.Idle
+        gradingProblem = null
+        loadRoster(classId)
+    }
+
+    private var rosterClass: String? = null
+
+    fun loadRoster(classId: String) {
+        rosterClass = classId
+        if (rosterState !is Load.Ready) rosterState = Load.Loading
+        viewModelScope.launch {
+            try {
+                val roster = api.roster(classId)
+                if (rosterClass == classId) rosterState = Load.Ready(roster)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile == null) return@launch
+                if (rosterState is Load.Ready) gradingProblem = message else rosterState = Load.Failed(message)
+            }
+        }
+    }
+
+    private fun updateStudent(student: RosterStudent, change: (RosterStudent) -> RosterStudent) {
+        val now = (rosterState as? Load.Ready)?.value ?: return
+        rosterState = Load.Ready(now.copy(students = now.students.map { if (it.enrolmentId == student.enrolmentId) change(it) else it }))
+    }
+
+    private fun gradingAction(student: RosterStudent, block: suspend () -> Unit, undo: (() -> Unit)? = null) {
+        if (student.enrolmentId in gradingBusy) return
+        gradingBusy.add(student.enrolmentId)
+        gradingProblem = null
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                undo?.invoke()
+                val message = failure(e)
+                if (profile != null) gradingProblem = message
+            } finally {
+                gradingBusy.remove(student.enrolmentId)
+            }
+        }
+    }
+
+    fun gradeStudent(student: RosterStudent, competent: Boolean) = gradingAction(student, {
+        api.gradeStudent(student, competent)
+        rosterClass?.let { loadRoster(it) }
+    })
+
+    /** TRAQOM is ticked by the trainer (SSG does not report completion): shown at once, put back on failure. */
+    fun setTraqom(student: RosterStudent, done: Boolean) {
+        updateStudent(student) { it.copy(traqomCompleted = done) }
+        gradingAction(student, { api.setTraqom(student, done) }) { updateStudent(student) { it.copy(traqomCompleted = !done) } }
+    }
+
+    /** Signing opens the signature sheet first ("Sign Assessments"); the files are stamped once it is drawn. */
+    fun signSubmissionsTapped(students: List<RosterStudent>) {
+        if (students.isEmpty() || gradingBusy.isNotEmpty()) return
+        openSigner(
+            SignerKind.ASSESSOR, signing = true, title = "Sign Assessments", what = "every file the learner submitted", grading = students,
+        )
+    }
+
+    /** Stamps ([signed]) or removes the assessor signature, one learner at a time; stops at the first failure. */
+    fun signSubmissions(students: List<RosterStudent>, signed: Boolean) {
+        val classId = rosterClass ?: return
+        gradingProblem = null
+        viewModelScope.launch {
+            for (s in students) {
+                gradingBusy.add(s.enrolmentId)
+                try {
+                    api.signAssessments(classId, s.userIds, signed)
+                    updateStudent(s) { it.copy(assessorSigned = signed) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    val message = failure(e)
+                    if (profile != null) gradingProblem = message
+                    break
+                } finally {
+                    gradingBusy.remove(s.enrolmentId)
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- certificates, support, credentials
+
+    private fun resetAccountPages() {
+        certificatesState = Load.Idle
+        supportState = Load.Idle
+        supportNotice = null
+        supportProblem = null
+        credentialsState = Load.Idle
+        credentialsProblem = null
+        rosterState = Load.Idle
+        announcementAttachment = null
+        announcementProblem = null
+    }
+
+    fun loadCertificates() {
+        if (certificatesState !is Load.Ready) certificatesState = Load.Loading
+        viewModelScope.launch {
+            try {
+                val list = api.certificates()
+                if (profile != null) certificatesState = Load.Ready(list)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null && certificatesState !is Load.Ready) certificatesState = Load.Failed(message)
+            }
+        }
+    }
+
+    fun openCertificates() {
+        stack.add(Screen.Certificates)
+        loadCertificates()
+    }
+
+    /** The academy's contacts; the sample contacts when they cannot be loaded, as on iOS. */
+    fun loadSupport() {
+        if (supportState is Load.Ready) return
+        supportState = Load.Loading
+        viewModelScope.launch {
+            supportState = try {
+                Load.Ready(api.support())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (e is ApiException && e.sessionEnded) failure(e)
+                Load.Ready(SupportInfo.SAMPLE)
+            }
+        }
+    }
+
+    fun sendSupport(subject: String, message: String, onSent: () -> Unit) {
+        if (supportSending || subject.isBlank() || message.isBlank()) return
+        supportNotice = null
+        supportProblem = null
+        if (isDemo) {
+            supportNotice = "Sent (sample). Sign in with your account to send feedback."
+            return
+        }
+        supportSending = true
+        viewModelScope.launch {
+            try {
+                api.sendSupport(subject, message)
+                onSent()
+                supportNotice = "Thank you. Your feedback has been sent."
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val problem = failure(e)
+                if (profile != null) supportProblem = problem
+            } finally {
+                supportSending = false
+            }
+        }
+    }
+
+    fun loadCredentials() {
+        if (role != Roles.TRAINER) return
+        viewModelScope.launch {
+            try {
+                credentialsState = Load.Ready(api.trainerCredentials())
+                credentialsProblem = null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null && credentialsState !is Load.Ready) credentialsState = Load.Failed(message)
+            }
+        }
+    }
+
+    /** Saves one change at once (shown before the server answers); a failure reloads the saved profile. */
+    private fun saveCredentials(shown: TrainerCredentials, changes: JSONObject) {
+        credentialsState = Load.Ready(shown)
+        viewModelScope.launch {
+            try {
+                credentialsState = Load.Ready(api.saveTrainerCredentials(changes))
+                credentialsProblem = null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null) {
+                    credentialsProblem = message
+                    loadCredentials()
+                }
+            }
+        }
+    }
+
+    fun setCredential(field: String, value: Boolean) {
+        val now = (credentialsState as? Load.Ready)?.value ?: return
+        val next = when (field) {
+            "aclp" -> now.copy(aclp = value)
+            "dddpl" -> now.copy(dddpl = value)
+            "taepp" -> now.copy(taepp = value)
+            else -> return
+        }
+        saveCredentials(next, JSONObject().put(field, value))
+    }
+
+    /** Adds a tag to "areasOfExpertise" or "skillsTags"; returns false when it was blank or already there. */
+    fun addCredentialTag(field: String, raw: String): Boolean {
+        val now = (credentialsState as? Load.Ready)?.value ?: return false
+        val list = if (field == "areasOfExpertise") now.areasOfExpertise else now.skillsTags
+        val next = addTag(list, raw) ?: return false
+        saveCredentials(withTags(now, field, next), JSONObject().put(field, org.json.JSONArray(next)))
+        return true
+    }
+
+    fun removeCredentialTag(field: String, tag: String) {
+        val now = (credentialsState as? Load.Ready)?.value ?: return
+        val next = (if (field == "areasOfExpertise") now.areasOfExpertise else now.skillsTags).filter { it != tag }
+        saveCredentials(withTags(now, field, next), JSONObject().put(field, org.json.JSONArray(next)))
+    }
+
+    private fun withTags(c: TrainerCredentials, field: String, tags: List<String>) =
+        if (field == "areasOfExpertise") c.copy(areasOfExpertise = tags) else c.copy(skillsTags = tags)
 
     // ---------------------------------------------------------------- course feedback
 

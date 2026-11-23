@@ -1,5 +1,8 @@
 package com.tertiaryinfotech.ailmstms.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +22,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
@@ -192,6 +199,7 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
             }
 
             fold("Announcements", MegaphoneIcon, open, ::toggle) {
+                if (trainer) AnnouncementComposer(vm, detail)
                 if (detail.announcements.isEmpty()) Text("No announcements yet.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 detail.announcements.forEachIndexed { i, item ->
                     if (i > 0) HorizontalDivider(color = LocalLmsColors.current.cardBorder)
@@ -202,6 +210,7 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
                         if (meta.isNotBlank()) Text(meta, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         item.linkUrl?.let { link -> LinkRow(LinkIcon, "Open link") { openInApp(context, link) } }
                         item.fileUrl?.let { file -> LinkRow(DocumentIcon, item.fileName.ifBlank { "Attachment" }) { vm.openMaterial(item.fileName.ifBlank { "Attachment" }, file) } }
+                        if (trainer) AnnouncementDelete(vm, detail, item.id)
                     }
                 }
             }
@@ -271,8 +280,12 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
                 }
             }
 
-            fold("Assessment Summary Record", SealIcon, open, ::toggle) {
-                if (trainer) TrainerSummaryRecord(vm, detail) else LearnerSummaryRecord(vm, detail)
+            // Website order: the learner signs right after Assessment; the trainer grades first,
+            // then signs the record (Assessment Grading, then Assessment Summary Record).
+            if (!trainer) {
+                fold("Assessment Summary Record", SealIcon, open, ::toggle) {
+                    LearnerSummaryRecord(vm, detail)
+                }
             }
 
             if (trainer) {
@@ -281,7 +294,10 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
                         Icons.Default.Edit, "Assessment Grading",
                         "Open Assessment Grading for Course Run ${detail.runCode} · ${detail.roster.size} learners",
                         external = false, tag = "grading",
-                    ) { vm.stack.add(Screen.Assessments(detail.id)) }
+                    ) { vm.openGrading(detail.id) }
+                }
+                fold("Assessment Summary Record", SealIcon, open, ::toggle) {
+                    TrainerSummaryRecord(vm, detail)
                 }
                 fold("Post Course Feedback Summary", ChartIcon, open, ::toggle) {
                     val summary = detail.feedbackSummary
@@ -312,6 +328,77 @@ private fun ClassContent(vm: LmsViewModel, detail: ClassDetail) {
             },
             confirmButton = { TextButton(onClick = { manualCode = null; vm.checkIn(code) }, enabled = code.isNotBlank()) { Text("Check in") } },
             dismissButton = { TextButton(onClick = { manualCode = null }) { Text("Cancel") } },
+        )
+    }
+}
+
+// ---------------------------------------------------------------- trainer announcements
+
+/** The trainer's composer: a message, an optional photo or file (one, at most 50 MB), then Post. */
+@Composable
+private fun AnnouncementComposer(vm: LmsViewModel, detail: ClassDetail) {
+    var message by rememberSaveable(detail.id) { mutableStateOf("") }
+    // Photos need no permission with the system photo picker; files come from the document picker.
+    val photo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let(vm::attachPhoto) }
+    val file = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::attachFile) }
+    val attachment = vm.announcementAttachment
+    val canPost = !vm.announcementPosting && (message.isNotBlank() || attachment != null)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.testTag("announcement-composer")) {
+        OutlinedTextField(
+            message, { message = it.take(5000) }, placeholder = { Text("Write an announcement for this class…") },
+            minLines = 3, maxLines = 8, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth().testTag("announcement-text"),
+        )
+        if (attachment != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(if (attachment.photo) PhotoIcon else DocumentIcon, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(attachment.name, Modifier.weight(1f), fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                IconButton(onClick = vm::clearAttachment) { Icon(Icons.Default.Close, "Remove attachment") }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = { photo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                contentPadding = PaddingValues(horizontal = 12.dp), modifier = Modifier.testTag("announcement-photo"),
+            ) {
+                Icon(PhotoIcon, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Photo")
+            }
+            OutlinedButton(onClick = { file.launch(arrayOf("*/*")) }, contentPadding = PaddingValues(horizontal = 12.dp), modifier = Modifier.testTag("announcement-file")) {
+                Icon(DocumentIcon, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("File")
+            }
+            Spacer(Modifier.weight(1f))
+            Button(onClick = { vm.postAnnouncement(detail, message) { message = "" } }, enabled = canPost, modifier = Modifier.testTag("announcement-post")) {
+                Text(if (vm.announcementPosting) "Posting…" else "Post", fontWeight = FontWeight.SemiBold)
+            }
+        }
+        vm.announcementProblem?.let { Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.error) }
+        HorizontalDivider(color = LocalLmsColors.current.cardBorder)
+    }
+}
+
+/** The trainer's delete control on one announcement, with a confirm. */
+@Composable
+private fun AnnouncementDelete(vm: LmsViewModel, detail: ClassDetail, id: String) {
+    var confirming by rememberSaveable(id) { mutableStateOf(false) }
+    TextButton(onClick = { confirming = true }, enabled = !vm.working, contentPadding = PaddingValues(horizontal = 0.dp), modifier = Modifier.testTag("delete-announcement-$id")) {
+        Icon(Icons.Default.Delete, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+        Spacer(Modifier.width(4.dp))
+        Text("Delete", fontSize = 13.sp, color = MaterialTheme.colorScheme.error)
+    }
+    if (confirming) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text("Delete this post?") },
+            text = { Text("Learners will no longer see it. An attached file stays in the class's Drive folder.") },
+            confirmButton = {
+                TextButton(onClick = { confirming = false; vm.deleteAnnouncement(detail, id) }, modifier = Modifier.testTag("confirm-delete-post")) {
+                    Text("Delete post", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirming = false }) { Text("Cancel") } },
         )
     }
 }

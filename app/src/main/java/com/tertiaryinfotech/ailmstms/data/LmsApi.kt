@@ -77,6 +77,32 @@ interface LmsApi {
 
     /** Admin: every trainer with a WhatsApp number where the profile has one. */
     suspend fun staffTrainers(): List<StaffTrainer>
+
+    /** Trainer: posts an announcement to the class (message and/or one attachment, at most 50 MB). */
+    suspend fun postAnnouncement(runId: String, postedBy: String, message: String, file: UploadSource?)
+
+    /** Trainer: deletes one announcement of a class they train. */
+    suspend fun deleteAnnouncement(id: String)
+
+    /** Trainer: the grading roster and the class's assessment methods. */
+    suspend fun roster(runId: String): Roster
+
+    suspend fun gradeStudent(student: RosterStudent, competent: Boolean)
+    suspend fun setTraqom(student: RosterStudent, completed: Boolean)
+
+    /** Stamps (or removes) the assessor signature on every file the learners submitted. */
+    suspend fun signAssessments(runId: String, learnerUserIds: List<String>, signed: Boolean)
+
+    /** The signed-in account's course certificates. */
+    suspend fun certificates(): List<Certificate>
+
+    suspend fun support(): SupportInfo
+    suspend fun sendSupport(subject: String, message: String)
+
+    suspend fun trainerCredentials(): TrainerCredentials
+
+    /** Saves the changed fields only (aclp, dddpl, taepp, areasOfExpertise, skillsTags) and returns the saved profile. */
+    suspend fun saveTrainerCredentials(changes: org.json.JSONObject): TrainerCredentials
 }
 
 const val MAX_UPLOAD_BYTES = 100L * 1024 * 1024

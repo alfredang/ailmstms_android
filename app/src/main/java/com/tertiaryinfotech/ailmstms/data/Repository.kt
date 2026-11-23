@@ -133,7 +133,8 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
     // ---------------------------------------------------------------- LmsApi
 
     override suspend fun dashboard(role: String): Dashboard =
-        Dashboard.parse(request("/api/android/dashboard", query = listOf("role" to role)))
+        // includeCancelled: the class list shows cancelled classes with their status (sessions and alerts leave them out).
+        Dashboard.parse(request("/api/android/dashboard", query = listOf("role" to role, "includeCancelled" to "1")))
 
     private fun remember(profile: UserProfile): UserProfile {
         store.userProfile = profile.toJson().toString()
@@ -302,6 +303,66 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
 
     override suspend fun staffTrainers(): List<StaffTrainer> =
         StaffTrainer.parseAll(request("/api/mobile/staff", query = listOf("view" to "trainers")))
+
+    /** A multipart/form-data POST: text fields plus at most one file part named "file". */
+    private suspend fun multipart(path: String, fields: Map<String, String>, file: UploadSource?): JSONObject = withContext(Dispatchers.IO) {
+        val token = store.token
+        val form = MultipartBody.Builder().setType(MultipartBody.FORM).apply {
+            fields.toSortedMap().forEach { (k, v) -> addFormDataPart(k, v) }
+            if (file != null) {
+                val body = object : RequestBody() {
+                    override fun contentType(): MediaType = file.mimeType.toMediaTypeOrNull() ?: "application/octet-stream".toMediaType()
+                    override fun contentLength(): Long = if (file.length > 0) file.length else -1
+                    override fun writeTo(sink: BufferedSink) {
+                        file.open().use { input -> sink.outputStream().let { out -> input.copyTo(out) } }
+                    }
+                }
+                addFormDataPart("file", file.fileName.replace("\"", ""), body)
+            }
+        }.build()
+        val request = Request.Builder().url(url(path, emptyList())).header("Accept", "application/json")
+            .apply { if (token.isNotEmpty()) header("Authorization", "Bearer $token") }
+            .post(form).build()
+        uploadHttp.newCall(request).execute().use { read(it, token.isNotEmpty()) }
+    }
+
+    override suspend fun postAnnouncement(runId: String, postedBy: String, message: String, file: UploadSource?) {
+        val fields = mutableMapOf("courseRunId" to runId, "postedBy" to postedBy)
+        if (message.isNotBlank()) fields["message"] = message.trim()
+        multipart("/api/trainer/create-announcement", fields, file)
+    }
+
+    override suspend fun deleteAnnouncement(id: String) {
+        request("/api/course/announcements", method = "DELETE", query = listOf("id" to id), body = JSONObject())
+    }
+
+    override suspend fun roster(runId: String): Roster =
+        Roster.parse(request("/api/trainer/class-students", query = listOf("courseRunId" to runId, "withMeta" to "1")))
+
+    override suspend fun gradeStudent(student: RosterStudent, competent: Boolean) {
+        request("/api/trainer/grade-student", JSONObject().put("enrolmentIds", JSONArray(student.enrolmentIds)).put("source", student.source).put("isCompetent", competent))
+    }
+
+    override suspend fun setTraqom(student: RosterStudent, completed: Boolean) {
+        request("/api/trainer/traqom-status", JSONObject().put("enrolmentIds", JSONArray(student.enrolmentIds)).put("completed", completed))
+    }
+
+    override suspend fun signAssessments(runId: String, learnerUserIds: List<String>, signed: Boolean) {
+        request("/api/trainer/sign-assessments", JSONObject().put("courseRunId", runId).put("learnerUserIds", JSONArray(learnerUserIds)).put("signed", signed))
+    }
+
+    override suspend fun certificates(): List<Certificate> = Certificate.parseAll(request("/api/mobile/certificates"))
+
+    override suspend fun support(): SupportInfo = SupportInfo.parse(request("/api/mobile/support"))
+
+    override suspend fun sendSupport(subject: String, message: String) {
+        request("/api/mobile/support", JSONObject().put("subject", subject.trim()).put("message", message.trim()))
+    }
+
+    override suspend fun trainerCredentials(): TrainerCredentials = TrainerCredentials.parse(request("/api/mobile/trainer-profile"))
+
+    override suspend fun saveTrainerCredentials(changes: JSONObject): TrainerCredentials =
+        TrainerCredentials.parse(request("/api/mobile/trainer-profile", changes))
 
     private companion object {
         val JSON = "application/json".toMediaType()

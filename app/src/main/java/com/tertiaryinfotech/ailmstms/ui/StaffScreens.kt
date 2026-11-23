@@ -71,6 +71,17 @@ import com.tertiaryinfotech.ailmstms.data.StaffTrainer
 import com.tertiaryinfotech.ailmstms.data.trainerMessage
 import com.tertiaryinfotech.ailmstms.data.whatsAppUrl
 import com.tertiaryinfotech.ailmstms.data.longDay
+import com.tertiaryinfotech.ailmstms.data.fundingExpiresText
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.tertiaryinfotech.ailmstms.data.longRange
 import java.time.LocalDate
 import java.time.YearMonth
@@ -167,7 +178,14 @@ private fun Segments(labels: List<String>, selected: Int, tag: String, onPick: (
                     inactiveContainerColor = colors.field, inactiveContentColor = MaterialTheme.colorScheme.onSurface, inactiveBorderColor = colors.cardBorder,
                 ),
                 modifier = Modifier.testTag("$tag-$i"),
-            ) { Text(label, fontSize = 13.sp, maxLines = 1, fontWeight = if (selected == i) FontWeight.SemiBold else FontWeight.Normal) }
+            ) {
+                // Four segments (All / With classes / Expiring / Expired) wrap rather than cut a label short.
+                val crowded = labels.size > 3
+                Text(
+                    label, fontSize = if (crowded) 12.sp else 13.sp, maxLines = if (crowded) 2 else 1, lineHeight = 14.sp,
+                    textAlign = TextAlign.Center, fontWeight = if (selected == i) FontWeight.SemiBold else FontWeight.Normal,
+                )
+            }
         }
     }
 }
@@ -313,6 +331,30 @@ private fun TrainerRow(trainer: StaffTrainer, onClick: () -> Unit) {
     }
 }
 
+/** A blinking orange alert when course funding ends within 3 months; steady when animations are turned off. */
+@Composable
+private fun ExpiringBadge(days: Int) {
+    val context = LocalContext.current
+    val reduceMotion = remember {
+        android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
+    val alpha = if (reduceMotion) 1f else {
+        val blink = rememberInfiniteTransition(label = "expiring")
+        blink.animateFloat(1f, 0.35f, infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "alpha").value
+    }
+    Row(
+        Modifier.clip(RoundedCornerShape(50)).background(ExpiringOrange).alpha(alpha)
+            .semantics(mergeDescendants = true) { contentDescription = "Alert: funding expires in $days days" }
+            .padding(horizontal = 10.dp, vertical = 5.dp).testTag("expiring-badge"),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(androidx.compose.material.icons.Icons.Default.Warning, null, Modifier.size(14.dp), tint = Color.White)
+        Text(fundingExpiresText(days), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    }
+}
+
+private val ExpiringOrange = Color(0xFFF57C00)
+
 // ---------------------------------------------------------------- Admin calendar (second tab)
 
 /** Every academy class by day: a month calendar with dots, then the chosen day's classes. Loads a month at a time. */
@@ -399,7 +441,7 @@ fun AdminCalendarScreen(vm: LmsViewModel) {
 
 // ---------------------------------------------------------------- course catalogue (admin and developer)
 
-enum class CatalogueFilter(val label: String) { ALL("All"), RUNNING("With classes"), EXPIRED("Expired") }
+enum class CatalogueFilter(val label: String) { ALL("All"), RUNNING("With classes"), EXPIRING("Expiring"), EXPIRED("Expired") }
 
 /** The Admin or Developer third tab: the course catalogue. */
 @Composable
@@ -430,13 +472,14 @@ private fun LazyListScope.catalogue(
                 when (filter) {
                     CatalogueFilter.ALL -> true
                     CatalogueFilter.RUNNING -> c.upcomingRuns > 0
+                    CatalogueFilter.EXPIRING -> c.expiringInDays(today) != null
                     CatalogueFilter.EXPIRED -> c.expired(today)
                 } && c.matches(query)
             }
             item(key = "course-tiles") {
                 TileRow(
                     Triple("Courses", "${courses.size}", false),
-                    Triple("With classes", "${courses.count { it.upcomingRuns > 0 }}", false),
+                    Triple("Expiring ≤ 3 mo", "${courses.count { it.expiringInDays(today) != null }}", false),
                     Triple("Expired", "${courses.count { it.expired(today) }}", true),
                 )
             }
@@ -457,16 +500,16 @@ private fun CourseRow(item: StaffCourse, today: LocalDate) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(item.code.ifBlank { "No code" }, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                 if (item.courseType.isNotBlank()) StatusChip(item.courseType, Tone.Info)
+                StatusChip(if (expired) "Expired" else "Active", if (expired) Tone.Bad else Tone.Good)
                 Spacer(Modifier.weight(1f))
                 Icon(Icons.Default.KeyboardArrowDown, if (open) "Collapse" else "Expand", Modifier.rotate(if (open) 180f else 0f), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(item.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                SmallLine(Icons.Default.DateRange, if (item.upcomingRuns == 0) "No upcoming classes" else "${item.upcomingRuns} upcoming")
-                item.fundingEnd?.let {
-                    SmallLine(SealIcon, (if (expired) "Expired " else "Funding to ") + longDay(item.fundingValidityEnd), if (expired) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+            item.fundingValidityText?.let {
+                SmallLine(SealIcon, it, if (expired) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            item.expiringInDays(today)?.let { ExpiringBadge(it) }
+            SmallLine(Icons.Default.DateRange, if (item.upcomingRuns == 0) "No upcoming classes" else "${item.upcomingRuns} upcoming")
             if (open) {
                 HorizontalDivider(color = LocalLmsColors.current.cardBorder)
                 if (item.tscTitle.isNotBlank()) InfoRow("TSC Title", item.tscTitle)

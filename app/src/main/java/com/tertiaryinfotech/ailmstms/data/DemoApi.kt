@@ -41,6 +41,18 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
     private val assessorSigned = mutableMapOf<String, Boolean>()
     private var mySignature = false
 
+    // Announcements posted and deleted in the demo, newest first.
+    private val announcements = mutableListOf(
+        Announcement("demo-a1", "Welcome to class", "Bring your laptop with the lab software installed.", null, "", null, "Alex Tan", today().plusDays(1).toString()),
+    )
+
+    private var roster = listOf(
+        RosterStudent("d1", "u1", "Jamie Lim (sample)", "", "manual", false, listOf("writtenAssessment", "practicalExam"), false, 2, false, null),
+        RosterStudent("d2", "u2", "Priya Nair (sample)", "Competent", "manual", true, listOf("writtenAssessment", "practicalExam"), true, 2, true, null),
+        RosterStudent("d3", "u3", "Wei Ming (sample)", "", "manual", false, listOf("writtenAssessment"), false, 1, false, null),
+    )
+    private var credentials = TrainerCredentials(aclp = true, dddpl = false, taepp = false, areasOfExpertise = listOf("AI"), skillsTags = listOf("Python"))
+
     private fun signed(name: String) = SummaryParty(name, today().toString(), Instant.now().toString())
 
     override suspend fun dashboard(role: String): Dashboard {
@@ -49,7 +61,9 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
         val venue = VENUE
         val courses = listOf(
             Course("demo-ai", "Building AI Applications", "DEMO · AI-101", day.toString(), day.plusDays(1).toString(), "Classroom", venue, materials(trainer), "DEMO-RUN-1001", "Confirmed"),
-            Course("demo-data", "Data Analytics Essentials", "DEMO · DATA-101", day.plusDays(7).toString(), day.plusDays(7).toString(), "Online", "", emptyList(), "DEMO-RUN-1002", "Confirmed"),
+            Course("demo-data", "Data Analytics Essentials", "DEMO · DATA-101", day.plusDays(7).toString(), day.plusDays(7).toString(), "Online", "", emptyList(), "DEMO-RUN-1002", "Pending"),
+            // A cancelled class shows in the list with its status, but has no sessions, calendar entries or alerts.
+            Course("demo-cloud", "Cloud Fundamentals", "DEMO · CL-110", day.plusDays(14).toString(), day.plusDays(15).toString(), "Classroom", venue, emptyList(), "DEMO-RUN-1003", "Cancelled"),
         )
         val sessions = listOf(
             ClassSession("demo-1", "demo-ai", "Building AI Applications", day, day, "09:00", "17:00", if (trainer) "Teaching · Session 1" else "Session 1 · Foundations", venue, "Classroom", ""),
@@ -133,9 +147,7 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
             ),
             trainerNames = listOf("Alex Tan"),
             digitalAttendanceId = "RA000000",
-            announcements = listOf(
-                Announcement("demo-a1", "Welcome to class", "Bring your laptop with the lab software installed.", null, "", null, "Alex Tan", day.minusDays(2).toString()),
-            ),
+            announcements = announcements.toList(),
             briefingOnAssessment = BRIEFING,
             showCourseFeedback = true,
             courseFeedbackUrl = if (trainer) "/feedback/demo-ai" else "",
@@ -333,16 +345,93 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
         delay(pause)
         val day = today()
         return listOf(
-            StaffCourse("c1", "Building AI Applications", "DEMO · AI-101", "WSQ", "", "Artificial Intelligence Application", "DEMO-TSC-3026-1.1", 14.0, 2.0, day.plusYears(1).toString(), 2, day.toString()),
-            StaffCourse("c2", "Data Analytics Essentials", "DEMO · DATA-101", "WSQ", "", "Data Analytics", "DEMO-TSC-2011-1.1", 7.0, 1.0, day.plusMonths(8).toString(), 1, day.toString()),
+            StaffCourse("c1", "Building AI Applications", "DEMO · AI-101", "WSQ", "", "Artificial Intelligence Application", "DEMO-TSC-3026-1.1", 14.0, 2.0, day.plusYears(1).toString(), 2, day.toString(), day.minusYears(1).toString()),
+            StaffCourse("c2", "Data Analytics Essentials", "DEMO · DATA-101", "WSQ", "", "Data Analytics", "DEMO-TSC-2011-1.1", 7.0, 1.0, day.plusDays(45).toString(), 1, day.toString(), day.minusYears(2).toString()),
             StaffCourse("c3", "Prompt Engineering Workshop", "DEMO · PE-201", "Non-WSQ", "", "", "", 7.0, 0.0, "", 1, day.plusDays(3).toString()),
-            StaffCourse("c4", "Legacy Office Skills (Expired)", "DEMO · OF-001", "WSQ", "", "Office Productivity", "DEMO-TSC-1001-1.1", 7.0, 1.0, day.minusMonths(3).toString(), 0, ""),
+            StaffCourse("c4", "Legacy Office Skills (Expired)", "DEMO · OF-001", "WSQ", "", "Office Productivity", "DEMO-TSC-1001-1.1", 7.0, 1.0, day.minusMonths(3).toString(), 0, "", day.minusYears(2).toString()),
         )
     }
 
     override suspend fun staffTrainers(): List<StaffTrainer> {
         delay(pause)
         return listOf(StaffTrainer("Alex Tan (sample)", "", "+6580000000"), StaffTrainer("Priya Nair (sample)", "", null))
+    }
+
+    override suspend fun postAnnouncement(runId: String, postedBy: String, message: String, file: UploadSource?) {
+        delay(pause)
+        // The picked file is never read or sent in demo mode: only its name is shown.
+        announcements.add(
+            0,
+            Announcement(
+                "demo-post-${nextId++}", "", message.trim(), null, file?.fileName.orEmpty(),
+                file?.let { "$SAMPLE/sample-guide.html" }, postedBy, today().toString(),
+            ),
+        )
+    }
+
+    override suspend fun deleteAnnouncement(id: String) {
+        delay(pause)
+        announcements.removeAll { it.id == id }
+    }
+
+    override suspend fun roster(runId: String): Roster {
+        delay(pause)
+        return Roster(roster, AssessmentMethod.DEFAULT)
+    }
+
+    private fun updateRoster(student: RosterStudent, change: (RosterStudent) -> RosterStudent) {
+        roster = roster.map { if (it.enrolmentId == student.enrolmentId) change(it) else it }
+    }
+
+    override suspend fun gradeStudent(student: RosterStudent, competent: Boolean) {
+        delay(pause)
+        updateRoster(student) { it.copy(isCompetent = competent, competentStatus = if (competent) "Competent" else "Not Yet Competent") }
+    }
+
+    override suspend fun setTraqom(student: RosterStudent, completed: Boolean) {
+        delay(pause)
+        updateRoster(student) { it.copy(traqomCompleted = completed) }
+    }
+
+    override suspend fun signAssessments(runId: String, learnerUserIds: List<String>, signed: Boolean) {
+        delay(pause)
+        roster = roster.map { if (it.userIds.any { id -> id in learnerUserIds }) it.copy(assessorSigned = signed) else it }
+    }
+
+    override suspend fun certificates(): List<Certificate> {
+        delay(pause)
+        val day = today()
+        return listOf(
+            Certificate("cert-1", "demo-done", "Responsible Generative AI Basics (sample)", "DEMO · AI-090", "100000", day.minusDays(40).toString(), day.minusDays(39).toString(), "Competent", "$SAMPLE/sample-guide.html"),
+            Certificate("cert-2", "demo-ai", "Building AI Applications", "DEMO · AI-101", "DEMO-RUN-1001", day.plusDays(3).toString(), day.plusDays(4).toString(), "", null),
+        )
+    }
+
+    override suspend fun support(): SupportInfo {
+        delay(pause)
+        return SupportInfo.SAMPLE
+    }
+
+    /** Never sent: the view model tells the user the feedback went nowhere in the sample. */
+    override suspend fun sendSupport(subject: String, message: String) {
+        delay(pause)
+    }
+
+    override suspend fun trainerCredentials(): TrainerCredentials {
+        delay(pause)
+        return credentials
+    }
+
+    override suspend fun saveTrainerCredentials(changes: org.json.JSONObject): TrainerCredentials {
+        delay(pause)
+        credentials = credentials.copy(
+            aclp = changes.optBoolean("aclp", credentials.aclp),
+            dddpl = changes.optBoolean("dddpl", credentials.dddpl),
+            taepp = changes.optBoolean("taepp", credentials.taepp),
+            areasOfExpertise = if (changes.has("areasOfExpertise")) changes.strings("areasOfExpertise") else credentials.areasOfExpertise,
+            skillsTags = if (changes.has("skillsTags")) changes.strings("skillsTags") else credentials.skillsTags,
+        )
+        return credentials
     }
 
     companion object {

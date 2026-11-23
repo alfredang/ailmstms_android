@@ -217,7 +217,8 @@ fun MyClassesScreen(vm: LmsViewModel, onProfile: () -> Unit, onCalendar: () -> U
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(course.code, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-                        if (course.classStatus.isNotBlank()) StatusChip(course.classStatus, statusTone(course.classStatus))
+                        // Every class card shows its status, cancelled classes included.
+                        ClassStatusChip(course.classStatus)
                     }
                     Text(course.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp)
                     // The class's real address from the server (the run's own street, else the academy's).
