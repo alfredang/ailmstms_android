@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -59,7 +60,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -110,15 +113,17 @@ fun LearnerSummaryRecord(vm: LmsViewModel, detail: ClassDetail) {
         val busy = LmsViewModel.SELF in vm.summarySigning
         SignedRow("Candidate (you)", record?.learner)
         SignedRow("Assessor", record?.trainer)
-        if (record?.learner == null) {
-            Button(onClick = { vm.signMyRecord(detail.id) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("sign-summary-record")) {
-                Icon(Icons.Default.Edit, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(if (busy) "Signing…" else "Sign my Assessment Summary Record", fontWeight = FontWeight.SemiBold)
-            }
+        // Every signature is drawn on the phone at the moment of signing.
+        val signed = record?.learner != null
+        Button(
+            onClick = { vm.signMyRecord(detail.id) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("sign-summary-record"),
+            colors = if (signed) ButtonDefaults.buttonColors(containerColor = SignAgainGrey, contentColor = Color.White) else ButtonDefaults.buttonColors(),
+        ) {
+            Icon(Icons.Default.Edit, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(if (busy) "Signing…" else if (signed) "Sign again" else "Sign my Assessment Summary Record", fontWeight = FontWeight.SemiBold)
         }
         record?.fileUrl?.let { file -> LinkRow(DocumentIcon, "Open signed record (PDF)", tag = "summary-pdf") { openInApp(context, file) } }
-        TextButton(onClick = { vm.openSigner(SignerKind.LEARNER) }, modifier = Modifier.testTag("change-signature")) { Text("Change my saved signature", fontSize = 13.sp) }
     }
 }
 
@@ -151,7 +156,6 @@ fun TrainerSummaryRecord(vm: LmsViewModel, detail: ClassDetail) {
                 vm.signAsAssessor(detail.id, listOf(learner.learnerUserId))
             }
         }
-        TextButton(onClick = { vm.openSigner(SignerKind.ASSESSOR) }, modifier = Modifier.testTag("change-signature")) { Text("Change my assessor signature", fontSize = 13.sp) }
     }
 }
 
@@ -174,9 +178,11 @@ private fun TrainerSummaryRow(learner: LearnerSummaryStatus, busy: Boolean, enab
                 }
             }
             Spacer(Modifier.weight(1f))
-            if (record?.trainer == null) {
-                OutlinedButton(onClick = sign, enabled = enabled && !busy, modifier = Modifier.testTag("sign-${learner.learnerUserId}")) { Text(if (busy) "Signing…" else "Sign") }
-            }
+            val signed = record?.trainer != null
+            OutlinedButton(
+                onClick = sign, enabled = enabled && !busy, modifier = Modifier.testTag("sign-${learner.learnerUserId}"),
+                colors = if (signed) ButtonDefaults.outlinedButtonColors(contentColor = SignAgainGrey) else ButtonDefaults.outlinedButtonColors(),
+            ) { Text(if (busy) "Signing…" else if (signed) "Sign again" else "Sign") }
         }
     }
 }
@@ -204,7 +210,7 @@ fun SignatureSetupDialog(vm: LmsViewModel, kind: SignerKind) {
     Dialog(onDismissRequest = vm::closeSigner, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             when (val state = vm.signerState) {
-                is Load.Ready -> SignatureForm(vm, kind, state.value.name, state.value.nric, state.value.hasSignature, saving)
+                is Load.Ready -> SignatureForm(vm, kind, state.value.name, state.value.nric, state.value.hasSignature, saving, vm.signerSigning, vm.signerCount)
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             }
         }
@@ -212,18 +218,28 @@ fun SignatureSetupDialog(vm: LmsViewModel, kind: SignerKind) {
 }
 
 @Composable
-private fun SignatureForm(vm: LmsViewModel, kind: SignerKind, savedName: String, savedNric: String, hadSignature: Boolean, saving: Boolean) {
+private fun SignatureForm(
+    vm: LmsViewModel,
+    kind: SignerKind,
+    savedName: String,
+    savedNric: String,
+    hadSignature: Boolean,
+    saving: Boolean,
+    signing: Boolean,
+    count: Int,
+) {
     var name by rememberSaveable(kind) { mutableStateOf(savedName) }
     var nric by rememberSaveable(kind) { mutableStateOf(savedNric) }
     // Strokes are kept as points from 0 to 1, so the drawing survives a size change and exports at any size.
     val strokes = remember(kind) { mutableStateListOf<SnapshotStateList<Offset>>() }
     var unreadable by remember { mutableStateOf(false) }
-    val canSave = !saving && name.isNotBlank() && (strokes.isNotEmpty() || hadSignature)
+    // Signing a record: the signature must be drawn now, even when one is already saved.
+    val canSave = !saving && name.isNotBlank() && (strokes.isNotEmpty() || (!signing && hadSignature))
 
     Column(Modifier.fillMaxSize().statusBarsPadding().imePadding().testTag("signature-setup")) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = vm::closeSigner, enabled = !saving) { Text("Cancel") }
-            Text(kind.title, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            Text(if (signing) "Sign Summary Record" else kind.title, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
             TextButton(
                 onClick = {
                     unreadable = false
@@ -231,8 +247,8 @@ private fun SignatureForm(vm: LmsViewModel, kind: SignerKind, savedName: String,
                     if (strokes.isNotEmpty() && png == null) unreadable = true
                     else vm.saveSigner(kind, name, nric, png)
                 },
-                enabled = canSave, modifier = Modifier.testTag("save-signature"),
-            ) { Text(if (saving) "Saving…" else "Save", fontWeight = FontWeight.SemiBold) }
+                enabled = canSave, modifier = Modifier.testTag("confirm-signature"),
+            ) { Text(if (saving) "Saving…" else if (signing) "Sign" else "Save", fontWeight = FontWeight.SemiBold) }
         }
         HorizontalDivider(color = LocalLmsColors.current.cardBorder)
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -249,7 +265,12 @@ private fun SignatureForm(vm: LmsViewModel, kind: SignerKind, savedName: String,
             SignaturePad(strokes)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (hadSignature && strokes.isEmpty()) "Leave blank to keep your saved signature." else "Sign inside the box.",
+                    when {
+                        signing -> "Your signature, name and today's date are stamped on the Assessment Summary Record" +
+                            if (count > 1) " of $count learners." else "."
+                        hadSignature && strokes.isEmpty() -> "Leave blank to keep your saved signature."
+                        else -> "Sign inside the box."
+                    },
                     Modifier.weight(1f), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 TextButton(onClick = { strokes.clear() }, enabled = strokes.isNotEmpty()) { Text("Clear", color = if (strokes.isNotEmpty()) MaterialTheme.colorScheme.error else Color.Unspecified) }
@@ -260,13 +281,20 @@ private fun SignatureForm(vm: LmsViewModel, kind: SignerKind, savedName: String,
     }
 }
 
+private val SignAgainGrey = Color(0xFF8E8E93)
+
 /** A finger-drawn signature: dark ink on a white pad with a dashed border. */
 @Composable
 private fun SignaturePad(strokes: SnapshotStateList<SnapshotStateList<Offset>>) {
     val shape = RoundedCornerShape(12.dp)
     Box(
         Modifier.fillMaxWidth().height(180.dp).clip(shape).background(Color.White)
-            .semantics { contentDescription = "Signature pad" }.testTag("signature-pad")
+            // One accessibility element: "Signature pad", drawn on directly.
+            .clearAndSetSemantics {
+                contentDescription = "Signature pad"
+                testTag = "signature-pad"
+                stateDescription = if (strokes.isEmpty()) "Empty" else "Signed"
+            }
             .pointerInput(Unit) {
                 // Consumed at once, so the page does not scroll while signing.
                 awaitEachGesture {

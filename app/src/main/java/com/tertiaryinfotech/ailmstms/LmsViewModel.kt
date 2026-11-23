@@ -194,11 +194,15 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     val summarySigning = mutableStateListOf<String>()
     var summaryProblem by mutableStateOf<String?>(null)
     var signerSheet by mutableStateOf<SignerKind?>(null); private set
+    /** The sheet is signing records now: a signature must be drawn, and the button reads "Sign". */
+    var signerSigning by mutableStateOf(false); private set
+    /** How many records the signature goes on. */
+    val signerCount: Int get() = pendingSign.size
     var signerState by mutableStateOf<Load<SignerRecord>>(Load.Idle); private set
     var signerSaving by mutableStateOf(false); private set
     var signerProblem by mutableStateOf<String?>(null)
     /** Who to sign for once the signature is saved: [SELF] for the learner, learner ids for the assessor. */
-    private var pendingSign: List<String> = emptyList()
+    private var pendingSign by mutableStateOf<List<String>>(emptyList())
 
     // The trainer's Publish switches: assessments being saved and the last failure per assessment.
     val publishing = mutableStateListOf<String>()
@@ -944,13 +948,15 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Learner: sign my record. With no saved signature the setup sheet opens first, then the record is signed. */
-    fun signMyRecord(runId: String) {
-        val reply = (summaryState as? Load.Ready)?.value
-        if (reply?.hasSignature == true) sign(runId, listOf(SELF)) else openSigner(SignerKind.LEARNER, listOf(SELF))
+    /** Learner: sign (or sign again). The signature is always drawn on the phone at the moment of signing. */
+    fun signMyRecord(@Suppress("UNUSED_PARAMETER") runId: String) {
+        if (summarySigning.isEmpty()) openSigner(SignerKind.LEARNER, listOf(SELF), signing = true)
     }
 
-    /** Trainer: sign as assessor for each learner in turn. The server checks the assessor profile. */
-    fun signAsAssessor(runId: String, learnerIds: List<String>) = sign(runId, learnerIds)
+    /** Trainer: sign as assessor for the chosen learners, with one signature drawn now for all of them. */
+    fun signAsAssessor(@Suppress("UNUSED_PARAMETER") runId: String, learnerIds: List<String>) {
+        if (learnerIds.isNotEmpty() && summarySigning.isEmpty()) openSigner(SignerKind.ASSESSOR, learnerIds, signing = true)
+    }
 
     private fun sign(runId: String, ids: List<String>) {
         if (ids.isEmpty() || summarySigning.isNotEmpty()) return
@@ -971,7 +977,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
                         }
                         if (needsSignatureSetup(e)) {
                             // No saved signature yet: set it up, then carry on from this learner.
-                            openSigner(if (id == SELF) SignerKind.LEARNER else SignerKind.ASSESSOR, ids.drop(index))
+                            openSigner(if (id == SELF) SignerKind.LEARNER else SignerKind.ASSESSOR, ids.drop(index), signing = true)
                         } else {
                             summaryProblem = failure(e)
                         }
@@ -988,8 +994,9 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Opens the name, NRIC and signature sheet. [then] is who to sign for once it is saved. */
-    fun openSigner(kind: SignerKind, then: List<String> = emptyList()) {
+    fun openSigner(kind: SignerKind, then: List<String> = emptyList(), signing: Boolean = false) {
         pendingSign = then
+        signerSigning = signing
         signerProblem = null
         signerSheet = kind
         signerState = Load.Loading

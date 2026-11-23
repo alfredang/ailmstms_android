@@ -306,7 +306,7 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
 
     override suspend fun signer(kind: SignerKind): SignerRecord {
         delay(pause)
-        return signers[kind] ?: SignerRecord(PROFILE.name, "", false)
+        return signers[kind] ?: SignerRecord(if (kind == SignerKind.LEARNER) "Jamie Lim (sample)" else "Alex Tan (sample)", "", false)
     }
 
     override suspend fun saveSigner(kind: SignerKind, name: String, nric: String, signaturePng: String?) {

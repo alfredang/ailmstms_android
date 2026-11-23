@@ -11,7 +11,9 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.lifecycle.ViewModelProvider
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
@@ -82,16 +84,35 @@ class AppFlowTest {
         runCatching { compose.onNodeWithTag("class-detail").performScrollToNode(hasTestTag(tag)) }.isSuccess
     }
 
-    /** The signature setup sheet: draws a stroke on the pad and saves. */
-    private fun signAndSave() {
+    private fun waitForSignSheet() {
         compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("signature-pad")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Sign Summary Record").assertExists()
+        compose.onNodeWithContentDescription("Signature pad").assertExists()
+    }
+
+    /** The signing sheet: Sign stays disabled until the signature is drawn, then signs. */
+    private fun drawAndSign(footer: String) {
+        waitForSignSheet()
+        compose.onNodeWithText(footer, substring = true).assertExists()
+        compose.onNodeWithTag("confirm-signature").assertIsNotEnabled()
         compose.onNodeWithTag("signer-nric").performTextReplacement("S0000000A")
+        compose.onNodeWithTag("confirm-signature").assertIsNotEnabled()
         compose.onNodeWithTag("signature-pad").performTouchInput {
             swipe(Offset(width * 0.1f, height * 0.6f), Offset(width * 0.5f, height * 0.3f), 200)
             swipe(Offset(width * 0.5f, height * 0.3f), Offset(width * 0.9f, height * 0.6f), 200)
         }
+        compose.onNodeWithTag("confirm-signature").assertIsEnabled()
         capture("20-signature")
-        compose.onNodeWithTag("save-signature").performClick()
+        compose.onNodeWithTag("confirm-signature").performClick()
+        compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("signature-setup")).fetchSemanticsNodes().isEmpty() }
+    }
+
+    /** "Sign again" still asks for a new drawing, even with a signature saved. */
+    private fun signAgainNeedsDrawing(tag: String) {
+        compose.onNodeWithTag(tag).performClick()
+        waitForSignSheet()
+        compose.onNodeWithTag("confirm-signature").assertIsNotEnabled()
+        compose.onNodeWithText("Cancel").performClick()
         compose.waitUntil(8000) { compose.onAllNodes(hasTestTag("signature-setup")).fetchSemanticsNodes().isEmpty() }
     }
 
@@ -134,9 +155,11 @@ class AppFlowTest {
         section("Assessment Summary Record")
         inClass("Sign my Assessment Summary Record")
         compose.onNodeWithText("Sign my Assessment Summary Record").performClick()
-        waitForText("Your signature")
-        signAndSave()
+        drawAndSign("today's date are stamped on the Assessment Summary Record.")
         inClass("Open signed record (PDF)")
+        inClass("Sign again")
+        compose.onAllNodesWithText("Change my saved signature").assertCountEquals(0)
+        signAgainNeedsDrawing("sign-summary-record")
         capture("31-learner-summary-record")
         section("Course Feedback & TRAQOM Survey")
         inClass("TRAQOM Survey")
@@ -169,10 +192,13 @@ class AppFlowTest {
         capture("32-trainer-class")
         section("Assessment Summary Record")
         inClass("Sign all 4 as assessor")
+        compose.onAllNodesWithText("Change my assessor signature").assertCountEquals(0)
         compose.onNodeWithText("Sign all 4 as assessor").performClick()
-        waitForText("Assessor signature")
-        signAndSave()
+        drawAndSign("Assessment Summary Record of 4 learners.")
         compose.waitUntil(10000) { compose.onAllNodesWithText("Assessor pending").fetchSemanticsNodes().isEmpty() }
+        inClassTag("sign-demo-e1")
+        compose.onNodeWithTag("sign-demo-e1").assertTextEquals("Sign again")
+        signAgainNeedsDrawing("sign-demo-e1")
         capture("33-trainer-summary-record")
         section("Post Course Feedback Summary")
         inClass("Overall average")
@@ -364,9 +390,11 @@ class AppFlowTest {
         section("Assessment Summary Record")
         inClass("Sign my Assessment Summary Record")
         compose.onNodeWithText("Sign my Assessment Summary Record").performClick()
-        waitForText("Your signature")
-        signAndSave()
+        drawAndSign("today's date are stamped on the Assessment Summary Record.")
         inClass("Open signed record (PDF)")
+        inClass("Sign again")
+        compose.onAllNodesWithText("Change my saved signature").assertCountEquals(0)
+        signAgainNeedsDrawing("sign-summary-record")
         capture("19-summary-record")
 
         // Course feedback
@@ -490,10 +518,13 @@ class AppFlowTest {
         // Assessment Summary Record: sign all as assessor (the assessor signature is set up first)
         section("Assessment Summary Record")
         inClass("Sign all 4 as assessor")
+        compose.onAllNodesWithText("Change my assessor signature").assertCountEquals(0)
         compose.onNodeWithText("Sign all 4 as assessor").performClick()
-        waitForText("Assessor signature")
-        signAndSave()
+        drawAndSign("Assessment Summary Record of 4 learners.")
         compose.waitUntil(10000) { compose.onAllNodesWithText("Assessor pending").fetchSemanticsNodes().isEmpty() }
+        inClassTag("sign-demo-e1")
+        compose.onNodeWithTag("sign-demo-e1").assertTextEquals("Sign again")
+        signAgainNeedsDrawing("sign-demo-e1")
         capture("26-trainer-summary-record")
 
         // Post Course Feedback Summary
