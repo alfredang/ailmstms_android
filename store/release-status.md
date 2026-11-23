@@ -1,6 +1,12 @@
 # TIA TMS Android release status
 
 
+## Production 1.3.0 (7) — 23 November 2026
+
+- Committed through the Android Publisher API with the shared service account (edit 04231702214405640760): bundle versionCode 7 (SHA-256 `f49b8a9a37a31eac…`), production release "1.3.0 (7)" status completed, en-US release notes from `distribution/whatsnew/`. Validated before commit.
+- Read-back after commit: production = 1.3.0 (7) completed; alpha unchanged at 1.0.3 (4). Google review of the update is pending. Evidence: `store/qa-1.3.0-publish.txt`.
+- Ownership on the corporate account was taken from this file's earlier record (developer 6132721113732535566); the console was not signed in during this session.
+
 ## Production 1.2.0 (6) — 21 November 2026
 
 - Adds class quizzes opened from the trainer's quiz QR code (Android App Link for `https://lms-tms.tertiaryinfotech.com/quiz/<courseId>/<quizId>`); see `CHANGELOG.md`.
