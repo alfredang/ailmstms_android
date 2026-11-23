@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.0] — 2026-11-23 · versionCode 7
+
+### Added
+- Class page in the website's order and names, laid out for the phone: a summary card (course code, run, class type and status, dates, venue with Google Maps, trainer, Join Google Meet), then collapsible sections that start closed.
+- Course Details with funding validity (Valid/Expired) and Training, Assessment and Total hours.
+- E-Attendance shows the Digital Attendance ID; trainers get the SSG QR Attendance and SSG E-Attendance List links.
+- SWDA Enrolment and Course Feedback open their forms directly.
+- Trainers: a Publish switch for each assessment, and the Post Course Feedback Summary (averages, stars and comments).
+- Assessment Summary Record e-signing: learners sign as candidate, trainers sign as assessor (one by one or all at once), with a finger-drawn signature saved once.
+- Owner "View as" switch (Learner, Trainer, Developer, Admin); admin sign-in shows Admin.
+- Admin: Current and Upcoming classes, the academy calendar, the course catalogue, and WhatsApp a trainer about a class.
+- Developer: the course catalogue.
+
+### Changed
+- Class cards show the class address and no longer show the teaching-kit ring.
+- Learner-only sections (Course Feedback & TRAQOM Survey, Briefing on Assessment) are hidden from trainers.
+
 ## [1.2.0] — 2026-11-21 · versionCode 6
 
 ### Added

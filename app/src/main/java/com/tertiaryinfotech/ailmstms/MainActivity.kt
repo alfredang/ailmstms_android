@@ -24,6 +24,9 @@ class MainActivity : ComponentActivity() {
     /** A link the app was opened with (a scanned quiz QR code), waiting to be handed to the view model. */
     private var incomingLink by mutableStateOf<String?>(null)
 
+    /** Debug builds only: `--es demoRole admin` opens the demo as that role (as DEMO_ROLE does on iOS). */
+    private var demoRole by mutableStateOf<String?>(null)
+
     private fun linkOf(intent: Intent?): String? = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,12 +35,19 @@ class MainActivity : ComponentActivity() {
         calendarRequested = intent.getBooleanExtra("openCalendar", false)
         // Only a fresh launch carries a new link; a rotation re-delivers the old intent.
         if (savedInstanceState == null) incomingLink = linkOf(intent)
+        if (savedInstanceState == null && BuildConfig.DEBUG) demoRole = intent.getStringExtra("demoRole")
         setContent {
             val vm: LmsViewModel = viewModel()
             LaunchedEffect(incomingLink) {
                 incomingLink?.let {
                     incomingLink = null
                     if (it.startsWith("tiatms://")) vm.onAuthCallback(android.net.Uri.parse(it)) else vm.openLink(it)
+                }
+            }
+            LaunchedEffect(demoRole) {
+                demoRole?.let {
+                    demoRole = null
+                    if (vm.profile == null) vm.enterDemo(it)
                 }
             }
             val dark = resolveDark(vm.themeMode, isSystemInDarkTheme())

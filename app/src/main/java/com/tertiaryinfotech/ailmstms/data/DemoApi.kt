@@ -20,18 +20,33 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
 
     private fun firstDay(): LocalDate = today().plusDays(3)
 
-    private fun materials(trainer: Boolean): List<Material> = buildList {
-        if (trainer) add(Material("trainer-slides", "Trainer slides", "$SAMPLE/sample-trainer.html"))
-        add(Material("slides", "Learner slides", "$SAMPLE/sample-slides.html"))
-        add(Material("guide", "Learner Guide", "$SAMPLE/sample-guide.html"))
-        add(Material("activities", "Labs & activities", "$SAMPLE/sample-activity.html"))
-        if (trainer) add(Material("lesson-plan", "Lesson Plan", "$SAMPLE/sample-guide.html"))
-    }
+    // Same names and order as the website's Courseware section for each role.
+    private fun materials(trainer: Boolean): List<Material> =
+        if (trainer) listOf(
+            Material("courseware-link", "Courseware Link", "$SAMPLE/support.html"),
+            Material("lesson-plan", "Lesson Plan", "$SAMPLE/sample-guide.html"),
+            Material("guide", "Learner Guide", "$SAMPLE/sample-guide.html"),
+            Material("trainer-slides", "Trainer Slides", "$SAMPLE/sample-trainer.html"),
+            Material("activities", "Activities/Lab", "$SAMPLE/sample-activity.html"),
+        ) else listOf(
+            Material("guide", "Learner Guide", "$SAMPLE/sample-guide.html"),
+            Material("slides", "Learner Slides", "$SAMPLE/sample-slides.html"),
+            Material("activities", "Activities/Lab", "$SAMPLE/sample-activity.html"),
+        )
+
+    // Assessment Summary Record, signatures and the Publish switches: kept in memory.
+    private val published = mutableMapOf("writtenAssessment" to true, "practicalExam" to true)
+    private val signers = mutableMapOf<SignerKind, SignerRecord>()
+    private val candidateSigned = mutableMapOf("demo-e1" to true)
+    private val assessorSigned = mutableMapOf<String, Boolean>()
+    private var mySignature = false
+
+    private fun signed(name: String) = SummaryParty(name, today().toString(), Instant.now().toString())
 
     override suspend fun dashboard(role: String): Dashboard {
         val day = firstDay()
         val trainer = role == "trainer"
-        val venue = "Woods Square, Singapore"
+        val venue = VENUE
         val courses = listOf(
             Course("demo-ai", "Building AI Applications", "DEMO · AI-101", day.toString(), day.plusDays(1).toString(), "Classroom", venue, materials(trainer), "DEMO-RUN-1001", "Confirmed"),
             Course("demo-data", "Data Analytics Essentials", "DEMO · DATA-101", day.plusDays(7).toString(), day.plusDays(7).toString(), "Online", "", emptyList(), "DEMO-RUN-1002", "Confirmed"),
@@ -88,6 +103,10 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
                 null, emptyList(), TRAQOM,
                 feedback = if (trainer) null else FeedbackInfo(true, null, false),
                 roster = if (trainer) roster() else emptyList(),
+                trainerNames = listOf("Alex Tan"),
+                briefingOnAssessment = BRIEFING,
+                showCourseFeedback = true,
+                swdaEnrolmentUrl = if (trainer) "/enrol/$id" else "",
             )
         }
         val sessions = listOf("demo-1" to day, "demo-2" to day.plusDays(1)).mapIndexed { i, (sid, date) ->
@@ -98,17 +117,38 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
             )
         }
         val assessments = listOf("writtenAssessment" to "Written Assessment", "practicalExam" to "Practical Performance").map { (type, label) ->
-            Assessment(type, label, "$SAMPLE/sample-activity.html", true, if (trainer) emptyList() else submissions.getValue(type).toList())
-        }
+            Assessment(type, label, "$SAMPLE/sample-activity.html", published.getValue(type), if (trainer) emptyList() else submissions.getValue(type).toList())
+        }.filter { trainer || it.published } // as on the server, a learner never sees an unpublished paper
         return ClassDetail(
             id = "demo-ai", runCode = "DEMO-RUN-1001", title = "Building AI Applications", code = "DEMO · AI-101",
             startDate = day.toString(), endDate = day.plusDays(1).toString(), format = "Classroom", classStatus = "Confirmed",
-            venue = "Woods Square, Singapore", meetingUrl = null, materials = materials(trainer), sessions = sessions,
+            venue = VENUE, meetingUrl = "https://meet.google.com/abc-defg-hij", materials = materials(trainer), sessions = sessions,
             ssgAttendanceUrl = "$SAMPLE/support.html", assessments = assessments, traqomUrl = TRAQOM,
             assessmentStatus = "", traqomCompleted = false,
             feedback = if (trainer) null else FeedbackInfo(true, null, feedbackSent),
             roster = if (trainer) roster() else emptyList(),
             feedbackCount = if (trainer) 3 else 0,
+            courseDetails = CourseDetails(
+                "Artificial Intelligence Application", "DEMO-TSC-3026-1.1", "", today().minusYears(1).toString(), today().plusYears(1).toString(), 14.0, 2.0,
+            ),
+            trainerNames = listOf("Alex Tan"),
+            digitalAttendanceId = "RA000000",
+            announcements = listOf(
+                Announcement("demo-a1", "Welcome to class", "Bring your laptop with the lab software installed.", null, "", null, "Alex Tan", day.minusDays(2).toString()),
+            ),
+            briefingOnAssessment = BRIEFING,
+            showCourseFeedback = true,
+            courseFeedbackUrl = if (trainer) "/feedback/demo-ai" else "",
+            swdaEnrolmentUrl = if (trainer) "/enrol/demo-ai" else "",
+            feedbackSummary = if (trainer) FeedbackSummary(
+                3, 4.5,
+                listOf(
+                    FeedbackSummary.Question("Overall, how would you rate the course meeting the learning objectives?", 4.7),
+                    FeedbackSummary.Question("Overall, how would you rate the trainer's knowledge of the subject?", 5.0),
+                    FeedbackSummary.Question("Overall, how would you rate the training environment?", 3.8),
+                ),
+                listOf("Very practical, loved the hands-on labs.", "Clear explanations and good pace.", "More time for the final project, please.", "The examples were relevant to my work."),
+            ) else null,
         )
     }
 
@@ -234,7 +274,81 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
         )
     }
 
+    override suspend fun publishAssessment(runId: String, type: String, published: Boolean) {
+        delay(pause)
+        this.published[type] = published
+    }
+
+    override suspend fun summaryRecord(runId: String, learnerView: Boolean): SummaryReply {
+        delay(pause)
+        if (learnerView) {
+            val record = if (mySignature) SummaryRecord(signed(PROFILE.name), null, "$SAMPLE/sample-guide.html") else null
+            return SummaryReply(record, emptyList(), signers[SignerKind.LEARNER]?.hasSignature == true)
+        }
+        val learners = LEARNERS.map { (id, name) ->
+            val candidate = candidateSigned[id] == true
+            val assessor = assessorSigned[id] == true
+            val record = if (candidate || assessor) SummaryRecord(if (candidate) signed(name) else null, if (assessor) signed(PROFILE.name) else null, "$SAMPLE/sample-guide.html") else null
+            LearnerSummaryStatus(id, name, record)
+        }
+        return SummaryReply(null, learners, signers[SignerKind.ASSESSOR]?.hasSignature == true)
+    }
+
+    override suspend fun signSummaryRecord(runId: String, learnerUserId: String?): String? {
+        delay(pause)
+        val kind = if (learnerUserId == null) SignerKind.LEARNER else SignerKind.ASSESSOR
+        if (signers[kind]?.hasSignature != true) {
+            throw ApiException(409, if (kind == SignerKind.LEARNER) "Set up your name, NRIC and signature first." else "Set up your assessor name, NRIC, date and signature first.")
+        }
+        if (learnerUserId == null) mySignature = true else assessorSigned[learnerUserId] = true
+        return null
+    }
+
+    override suspend fun signer(kind: SignerKind): SignerRecord {
+        delay(pause)
+        return signers[kind] ?: SignerRecord(PROFILE.name, "", false)
+    }
+
+    override suspend fun saveSigner(kind: SignerKind, name: String, nric: String, signaturePng: String?) {
+        delay(pause)
+        if (name.isBlank()) throw ApiException(400, "Name is required")
+        val had = signers[kind]?.hasSignature == true
+        signers[kind] = SignerRecord(name.trim(), nric.trim().uppercase(), had || signaturePng != null)
+    }
+
+    override suspend fun staffClasses(from: LocalDate, to: LocalDate): List<StaffClass> {
+        delay(pause)
+        val day = today()
+        fun d(n: Long) = day.plusDays(n).toString()
+        return listOf(
+            StaffClass("s1", "100001", "Building AI Applications", "DEMO · AI-101", d(0), d(1), "Hybrid", "Confirmed", true, listOf("Alex Tan"), 18, VENUE),
+            StaffClass("s2", "100002", "Data Analytics Essentials", "DEMO · DATA-101", d(0), d(0), "Online", "Confirmed", true, listOf("Priya Nair"), 9, ""),
+            StaffClass("s3", "100003", "Prompt Engineering Workshop", "DEMO · PE-201", d(3), d(3), "Physical", "Pending", false, emptyList(), 6, VENUE),
+            StaffClass("s4", "100004", "Cloud Fundamentals", "DEMO · CL-110", d(5), d(6), "Physical", "Cancelled", false, listOf("Wei Ming"), 0, VENUE),
+            StaffClass("s5", "100005", "Building AI Applications", "DEMO · AI-101", d(12), d(13), "Physical", "Confirmed", false, listOf("Alex Tan"), 14, VENUE),
+        ).filter { c -> c.start?.let { !it.isAfter(to) } == true && (c.end ?: c.start)?.let { !it.isBefore(from) } == true }
+    }
+
+    override suspend fun staffCourses(): List<StaffCourse> {
+        delay(pause)
+        val day = today()
+        return listOf(
+            StaffCourse("c1", "Building AI Applications", "DEMO · AI-101", "WSQ", "", "Artificial Intelligence Application", "DEMO-TSC-3026-1.1", 14.0, 2.0, day.plusYears(1).toString(), 2, day.toString()),
+            StaffCourse("c2", "Data Analytics Essentials", "DEMO · DATA-101", "WSQ", "", "Data Analytics", "DEMO-TSC-2011-1.1", 7.0, 1.0, day.plusMonths(8).toString(), 1, day.toString()),
+            StaffCourse("c3", "Prompt Engineering Workshop", "DEMO · PE-201", "Non-WSQ", "", "", "", 7.0, 0.0, "", 1, day.plusDays(3).toString()),
+            StaffCourse("c4", "Legacy Office Skills (Expired)", "DEMO · OF-001", "WSQ", "", "Office Productivity", "DEMO-TSC-1001-1.1", 7.0, 1.0, day.minusMonths(3).toString(), 0, ""),
+        )
+    }
+
+    override suspend fun staffTrainers(): List<StaffTrainer> {
+        delay(pause)
+        return listOf(StaffTrainer("Alex Tan (sample)", "", "+6580000000"), StaffTrainer("Priya Nair (sample)", "", null))
+    }
+
     companion object {
+        private const val VENUE = "12 Woodlands Square, Singapore 737715"
+        private val BRIEFING = listOf("Place phones & other materials under the table or on the floor", "No discussion during assessment")
+
         /** The link a quiz QR code would carry; used to open the sample quiz from the demo class. */
         const val QUIZ_COURSE_ID = "00000000-0000-4000-8000-000000000001"
         const val QUIZ_ID = "demo-quiz"

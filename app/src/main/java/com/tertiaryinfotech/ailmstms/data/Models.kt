@@ -41,41 +41,63 @@ fun prettyInstant(value: String): String =
     }.getOrDefault(value.take(16).replace('T', ' '))
 
 /**
- * The views a signed-in account can take. Everyone has exactly one role per sign-in (chosen on
- * the sign-in screen); only the owner account may switch between the roles it holds.
- * A later phase adds a role by listing it in [ALL] and [LABELS].
+ * The views a signed-in account can take. Learner and Trainer come from the sign-in screen's
+ * choice; Admin is what an admin sign-in (Google, allow-listed on the server) shows. The owner
+ * account can switch between all four to check each role's screens. The choice changes what this
+ * device shows, never what the server allows: every request is still checked by the server.
  */
 object Roles {
     const val LEARNER = "learner"
     const val TRAINER = "trainer"
+    const val DEVELOPER = "developer"
+    const val ADMIN = "admin"
 
-    /** Every role the app knows, in the order they are offered. */
-    val ALL = listOf(LEARNER, TRAINER)
-    private val LABELS = mapOf(LEARNER to "Learner", TRAINER to "Trainer")
-    private const val OWNER_EMAIL = "angch@tertiaryinfotech.com"
+    /** Every role the app can show, in display order. The tabs, chip and switcher follow it. */
+    val ALL = listOf(LEARNER, TRAINER, DEVELOPER, ADMIN)
+
+    /** The roles with classes of their own, offered on the sign-in screen and kept on the profile. */
+    val CLASSROOM = listOf(LEARNER, TRAINER)
+
+    /** Back-office roles: no class data of their own in the app, only the staff pages. */
+    val STAFF = setOf(DEVELOPER, ADMIN)
+    private val LABELS = mapOf(LEARNER to "Learner", TRAINER to "Trainer", DEVELOPER to "Developer", ADMIN to "Admin")
+    const val OWNER_EMAIL = "angch@tertiaryinfotech.com"
 
     fun label(role: String): String = LABELS[role] ?: role.replaceFirstChar(Char::titlecase)
 
+    fun isStaff(role: String): Boolean = role in STAFF
+
     /** The role a sign-in gets: the chosen one when the account holds it, otherwise the first it does hold. */
     fun resolve(chosen: String, held: List<String>): String =
-        if (chosen in held) chosen else ALL.firstOrNull { it in held } ?: LEARNER
+        if (chosen in held) chosen else CLASSROOM.firstOrNull { it in held } ?: LEARNER
 
     /** A session from before the sign-in choice existed keeps the trainer view when the account teaches. */
     fun legacy(held: List<String>): String = resolve(TRAINER, held)
 
     fun isOwner(email: String?): Boolean = email?.trim()?.lowercase() == OWNER_EMAIL
 
-    /** The roles this account may view as right now: just [active], except for the owner account. */
-    fun available(email: String?, held: List<String>, active: String): List<String> =
-        if (isOwner(email)) ALL.filter { it in held }.ifEmpty { listOf(active) } else listOf(active)
+    /**
+     * The role to show when the app starts again with a saved session: the owner keeps the role
+     * last viewed as, an admin sign-in keeps Admin, everyone else their learner or trainer role.
+     */
+    fun restore(email: String?, stored: String, loginRole: String, adminSession: Boolean, held: List<String>): String = when {
+        isOwner(email) && stored in ALL -> stored
+        stored == ADMIN && adminSession -> ADMIN
+        loginRole.isEmpty() -> legacy(held)
+        else -> resolve(stored, held)
+    }
+
+    /** The roles this account may view as right now: just [active], except for the owner account, which sees all. */
+    fun available(email: String?, @Suppress("UNUSED_PARAMETER") held: List<String>, active: String): List<String> =
+        if (isOwner(email)) ALL else listOf(active)
 }
 
-/** The signed-in identity: only the roles in [Roles.ALL] are ever kept. */
+/** The signed-in identity: only the classroom roles ([Roles.CLASSROOM]) are kept; Admin comes from the admin sign-in. */
 data class Profile(val id: String, val name: String, val email: String, val roles: List<String>) {
     companion object {
         fun parse(o: JSONObject): Profile {
             val roles = o.array("roles").let { a -> (0 until a.length()).map { a.optString(it) } }
-                .filter { it in Roles.ALL }
+                .filter { it in Roles.CLASSROOM }
             return Profile(o.text("id"), o.text("fullName"), o.text("email"), roles)
         }
     }
@@ -139,7 +161,39 @@ data class ProfilePatch(
     }
 }
 
-data class Material(val id: String, val title: String, val url: String)
+data class Material(val id: String, val title: String, val url: String) {
+    /** The website's name for this item, so an older server's "Trainer slides" or "Labs & activities" still reads "Trainer Slides" and "Activities/Lab". */
+    val websiteTitle: String
+        get() = WEBSITE_TITLES[id] ?: title
+
+    companion object {
+        private val WEBSITE_TITLES = mapOf(
+            "courseware-link" to "Courseware Link", "lesson-plan" to "Lesson Plan", "guide" to "Learner Guide",
+            "facilitator-guide" to "Facilitator Guide", "trainer-slides" to "Trainer Slides", "slides" to "Learner Slides",
+            "activities" to "Activities/Lab", "lab-simulator" to "Lab Simulator", "practice-exam" to "Practice Exam",
+            "assessment-plan" to "Assessment Plan", "skillsfuture" to "SkillsFuture Link",
+        )
+
+        /** The order of the website's Courseware section for each role. */
+        fun websiteOrder(trainer: Boolean): List<String> =
+            if (trainer) listOf("courseware-link", "lesson-plan", "guide", "facilitator-guide", "trainer-slides", "activities", "lab-simulator", "practice-exam", "assessment-plan", "skillsfuture")
+            else listOf("lesson-plan", "guide", "slides", "activities", "lab-simulator", "practice-exam", "skillsfuture")
+
+        internal val KNOWN: Set<String> get() = WEBSITE_TITLES.keys
+    }
+}
+
+/**
+ * The website's Courseware order and names for the role, whatever the server sent: items the
+ * website does not show for the role (Learner Slides for a trainer) are dropped, unknown items go last.
+ */
+fun List<Material>.asOnWebsite(trainer: Boolean): List<Material> {
+    val order = Material.websiteOrder(trainer)
+    return withIndex()
+        .filter { it.value.id in order || it.value.id !in Material.KNOWN }
+        .sortedBy { (i, m) -> order.indexOf(m.id).takeIf { it >= 0 } ?: (order.size + i) }
+        .map { it.value.copy(title = it.value.websiteTitle) }
+}
 
 data class Course(
     val id: String,
@@ -157,10 +211,10 @@ data class Course(
 
     companion object {
         private val LINKS = listOf(
-            Triple("trainer-slides", "Trainer slides", "trainerSlidesURL"),
-            Triple("slides", "Learner slides", "slidesURL"),
+            Triple("trainer-slides", "Trainer Slides", "trainerSlidesURL"),
+            Triple("slides", "Learner Slides", "slidesURL"),
             Triple("guide", "Learner Guide", "guideURL"),
-            Triple("activities", "Labs & activities", "activitiesURL"),
+            Triple("activities", "Activities/Lab", "activitiesURL"),
         )
 
         fun parse(o: JSONObject) = Course(
@@ -281,6 +335,20 @@ data class ClassDetail(
     val feedbackCount: Int = 0,
     /** Set when only the dashboard copy of the class could be shown. */
     val partialReason: String? = null,
+    // The website class page's panels. All optional, so an older server's reply still reads.
+    val courseDetails: CourseDetails? = null,
+    val trainerNames: List<String> = emptyList(),
+    val digitalAttendanceId: String = "",
+    val announcements: List<Announcement> = emptyList(),
+    val briefingOnAssessment: List<String> = emptyList(),
+    /** The provider shows the Course Feedback card beside TRAQOM Survey; null from an older server. */
+    val showCourseFeedback: Boolean? = null,
+    /** Trainer: the Course Feedback link (may be a path on the portal). */
+    val courseFeedbackUrl: String = "",
+    /** Trainer: the class's public SWDA enrolment form (a path on the portal). */
+    val swdaEnrolmentUrl: String = "",
+    /** Trainer: the Post Course Feedback Summary (averages and comments, no names). */
+    val feedbackSummary: FeedbackSummary? = null,
 ) {
     val isCancelled: Boolean get() = isCancelledStatus(classStatus)
 
@@ -320,6 +388,15 @@ data class ClassDetail(
                     RosterEntry(r.text("enrolmentId"), r.text("name").ifEmpty { "Learner" }, r.text("status"), r.optBoolean("traqomCompleted"), r.optInt("submissions"))
                 },
                 feedbackCount = o.optInt("feedbackCount"),
+                courseDetails = o.optJSONObject("courseDetails")?.let(CourseDetails::parse),
+                trainerNames = o.strings("trainerNames").map { it.trim() }.filter { it.isNotEmpty() },
+                digitalAttendanceId = o.text("digitalAttendanceId").trim(),
+                announcements = o.array("announcements").objects().map(Announcement::parse),
+                briefingOnAssessment = o.strings("briefingOnAssessment").map { it.trim() }.filter { it.isNotEmpty() },
+                showCourseFeedback = if (o.has("showCourseFeedback") && !o.isNull("showCourseFeedback")) o.optBoolean("showCourseFeedback") else null,
+                courseFeedbackUrl = o.text("courseFeedbackURL").trim(),
+                swdaEnrolmentUrl = o.text("swdaEnrolmentURL").trim(),
+                feedbackSummary = o.optJSONObject("feedbackSummary")?.let(FeedbackSummary::parse),
             )
         }
 
@@ -334,6 +411,274 @@ data class ClassDetail(
             },
             ssgAttendanceUrl = null, assessments = emptyList(), traqomUrl = null, partialReason = reason,
         )
+    }
+}
+
+/** A number the server may send as a number, as text or as null. */
+fun JSONObject.number(key: String): Double? =
+    if (!has(key) || isNull(key)) null else (opt(key) as? Number)?.toDouble() ?: text(key).toDoubleOrNull()
+
+fun JSONObject.strings(key: String): List<String> = array(key).let { a -> (0 until a.length()).mapNotNull { if (a.isNull(it)) null else a.optString(it) } }
+
+/** The website class page's "Course Details" panel. */
+data class CourseDetails(
+    val tscTitle: String = "",
+    val tscCode: String = "",
+    val caslSkills: String = "",
+    val fundingValidityStart: String = "",
+    val fundingValidityEnd: String = "",
+    val trainingHours: Double? = null,
+    val assessmentHours: Double? = null,
+) {
+    /** True when the funding validity has ended; null when no end date is known. */
+    fun expired(today: LocalDate = LocalDate.now(SGT)): Boolean? = parseDay(fundingValidityEnd)?.isBefore(today)
+
+    companion object {
+        fun parse(o: JSONObject) = CourseDetails(
+            o.text("tscTitle").trim(), o.text("tscCode").trim(), o.text("caslSkills").trim(),
+            o.text("fundingValidityStart").trim(), o.text("fundingValidityEnd").trim(),
+            o.number("trainingHours"), o.number("assessmentHours"),
+        )
+    }
+}
+
+data class Announcement(
+    val id: String,
+    val title: String,
+    val message: String,
+    val linkUrl: String?,
+    val fileName: String,
+    val fileUrl: String?,
+    val postedBy: String,
+    val createdAt: String,
+) {
+    companion object {
+        fun parse(o: JSONObject) = Announcement(
+            o.text("id"), o.text("title"), o.text("message"), o.link("linkURL"), o.text("fileName"), o.link("fileURL"),
+            o.text("postedBy"), o.text("createdAt"),
+        )
+    }
+}
+
+/** The class's Post Course Feedback Summary: average per 1–5 question, overall average, comments. */
+data class FeedbackSummary(val count: Int, val overall: Double?, val questions: List<Question>, val comments: List<String>) {
+    data class Question(val label: String, val average: Double?)
+
+    companion object {
+        fun parse(o: JSONObject) = FeedbackSummary(
+            o.optInt("count"), o.number("overall"),
+            o.array("questions").objects().map { Question(it.text("label"), it.number("average")) },
+            o.strings("comments").filter { it.isNotBlank() },
+        )
+    }
+}
+
+/** "1 hr", "7 hrs", "1.5 hrs"; "N/A" when unknown. */
+fun hoursText(value: Double?): String {
+    if (value == null) return "N/A"
+    val text = if (value == Math.rint(value)) value.toLong().toString() else String.format(Locale.ENGLISH, "%.1f", value)
+    return "$text ${if (value == 1.0) "hr" else "hrs"}"
+}
+
+/** A 1–5 score with one decimal when needed: "4", "4.5"; "—" when there is none. */
+fun scoreText(value: Double?): String = when {
+    value == null -> "—"
+    value == Math.rint(value) -> value.toLong().toString()
+    else -> String.format(Locale.ENGLISH, "%.1f", value)
+}
+
+private val LONG_DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH)
+
+/** "16 Nov 2026", as the website prints dates; the raw text when unreadable. */
+fun longDay(value: String): String = parseDay(value)?.format(LONG_DAY) ?: value.take(10)
+
+/** "16 Nov 2026 – 17 Nov 2026", one date when both are the same. */
+fun longRange(start: String, end: String): String {
+    val a = longDay(start)
+    val b = longDay(end)
+    if (a.isBlank()) return b.ifBlank { "Dates to be confirmed" }
+    return if (b.isBlank() || a == b) a else "$a – $b"
+}
+
+// ---------------------------------------------------------------- Assessment Summary Record
+
+data class SummaryParty(val name: String, val signDate: String, val signedAt: String) {
+    val day: String get() = signDate.ifBlank { signedAt }
+
+    companion object {
+        fun parse(o: JSONObject?) = o?.let { SummaryParty(it.text("name"), it.text("signDate"), it.text("signedAt")) }
+    }
+}
+
+data class SummaryRecord(val learner: SummaryParty?, val trainer: SummaryParty?, val fileUrl: String?) {
+    companion object {
+        fun parse(o: JSONObject?) = o?.let {
+            SummaryRecord(SummaryParty.parse(it.optJSONObject("learner")), SummaryParty.parse(it.optJSONObject("trainer")), it.optJSONObject("file")?.link("url"))
+        }
+    }
+}
+
+data class LearnerSummaryStatus(val learnerUserId: String, val learnerName: String, val record: SummaryRecord?)
+
+/** GET /api/assessments/summary-record: the learner's own record, or every learner's for the trainer. */
+data class SummaryReply(val record: SummaryRecord?, val learners: List<LearnerSummaryStatus>, val hasSignature: Boolean) {
+    companion object {
+        fun parse(o: JSONObject) = SummaryReply(
+            SummaryRecord.parse(o.optJSONObject("record")),
+            o.array("learners").objects().map { LearnerSummaryStatus(it.text("learnerUserId"), it.text("learnerName").ifBlank { "Learner" }, SummaryRecord.parse(it.optJSONObject("record"))) },
+            o.optBoolean("hasSignature"),
+        )
+    }
+}
+
+/** Whose saved signature: the learner's own, or the trainer's as assessor. */
+enum class SignerKind(val path: String, val title: String, val nameLabel: String) {
+    LEARNER("/api/learner/signature", "Your signature", "Full name (as in NRIC)"),
+    ASSESSOR("/api/trainer/assessor-signature", "Assessor signature", "Assessor name"),
+}
+
+/** Saved signer details. The learner and assessor endpoints name the name field differently. */
+data class SignerRecord(val name: String, val nric: String, val hasSignature: Boolean) {
+    companion object {
+        fun parse(o: JSONObject?): SignerRecord {
+            val d = o?.optJSONObject("data") ?: return SignerRecord("", "", false)
+            return SignerRecord(d.text("learner_name").ifBlank { d.text("assessor_name") }, d.text("nric"), d.text("signature_png").isNotBlank())
+        }
+    }
+}
+
+/** The body for saving signer details. [signaturePng] null keeps the saved signature. */
+fun signerBody(kind: SignerKind, name: String, nric: String, signaturePng: String?, today: LocalDate = LocalDate.now(SGT)): JSONObject =
+    JSONObject().put("name", name.trim()).put("nric", nric.trim().uppercase()).apply {
+        if (kind == SignerKind.ASSESSOR) put("signDate", today.toString())
+        if (signaturePng != null) put("signaturePng", signaturePng)
+    }
+
+/** True when signing failed only because no signature is saved yet (the server answers 409). */
+fun needsSignatureSetup(e: Throwable): Boolean {
+    val message = e.message.orEmpty().lowercase()
+    return (e is ApiException && e.status == 409) || "signature" in message || "assessor" in message
+}
+
+/** The assessment's Publish switch also flips the older per-class flag for the written and practical papers. */
+fun legacyPublishField(type: String): String? = mapOf("writtenAssessment" to "written", "practicalExam" to "practical")[type]
+
+// ---------------------------------------------------------------- staff (Admin and Developer)
+
+/** One class run in the admin lists (GET /api/mobile/staff?view=classes). */
+data class StaffClass(
+    val id: String,
+    val runCode: String,
+    val title: String,
+    val code: String,
+    val startDate: String,
+    val endDate: String,
+    val format: String,
+    val classStatus: String,
+    val hasMeetingLink: Boolean,
+    val trainers: List<String>,
+    val learners: Int,
+    val venue: String,
+) {
+    val start: LocalDate? get() = parseDay(startDate)
+    val end: LocalDate? get() = parseDay(endDate.ifBlank { startDate }) ?: start
+    val cancelled: Boolean get() = classStatus.trim().lowercase().startsWith("cancel")
+
+    fun covers(day: LocalDate): Boolean {
+        val a = start ?: return false
+        val b = end ?: a
+        return !day.isBefore(a) && !day.isAfter(b)
+    }
+
+    fun matches(query: String): Boolean {
+        val q = query.trim()
+        return q.isEmpty() || title.contains(q, true) || code.contains(q, true) || runCode.contains(q) || trainers.any { it.contains(q, true) }
+    }
+
+    companion object {
+        fun parse(o: JSONObject) = StaffClass(
+            o.text("id"), o.text("runCode"), o.text("title"), o.text("code"), o.text("startDate"), o.text("endDate"),
+            o.text("format"), o.text("classStatus"), o.optBoolean("hasMeetingLink"),
+            o.strings("trainers").map { it.trim() }.filter { it.isNotEmpty() }, o.optInt("learners"), o.text("venue").trim(),
+        )
+
+        fun parseAll(o: JSONObject): List<StaffClass> = o.array("classes").objects().map(::parse)
+    }
+}
+
+/** A trainer the admin can WhatsApp about a class (GET /api/mobile/staff?view=trainers). [phone] is E.164 or null. */
+data class StaffTrainer(val name: String, val email: String, val phone: String?) {
+    fun matches(query: String): Boolean {
+        val q = query.trim()
+        return q.isEmpty() || name.contains(q, true) || email.contains(q, true)
+    }
+
+    /** Already on the class, by name (as the class list names its trainers). */
+    fun assignedTo(item: StaffClass): Boolean = item.trainers.any { it.equals(name, ignoreCase = true) }
+
+    companion object {
+        fun parseAll(o: JSONObject): List<StaffTrainer> = o.array("trainers").objects().map {
+            StaffTrainer(it.text("name").trim(), it.text("email").trim(), it.text("phone").trim().ifBlank { null })
+        }.filter { it.name.isNotEmpty() }
+    }
+}
+
+/** The message the admin sends a trainer about a class; they can edit it in WhatsApp before sending. */
+fun trainerMessage(trainer: StaffTrainer, item: StaffClass): String {
+    val first = trainer.name.split(" ").firstOrNull { it.isNotEmpty() } ?: trainer.name
+    val lines = mutableListOf(
+        "Hi $first, this is Tertiary Infotech Academy.",
+        "Are you available to train this class?",
+        "",
+        item.title + (item.code.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""),
+    )
+    if (item.runCode.isNotBlank()) lines.add("Course Run: ${item.runCode}")
+    lines.add("Dates: ${longRange(item.startDate, item.endDate)}")
+    if (item.format.isNotBlank()) lines.add("Class type: ${item.format}")
+    if (item.venue.isNotBlank()) lines.add("Venue: ${item.venue}")
+    lines += listOf("", "Please reply to confirm. Thank you!")
+    return lines.joinToString("\n")
+}
+
+/** https://wa.me/<digits>?text=<message>; null when the phone has no digits. */
+fun whatsAppUrl(phone: String, text: String): String? {
+    val digits = phone.filter(Char::isDigit)
+    if (digits.isEmpty()) return null
+    return "https://wa.me/$digits?text=" + java.net.URLEncoder.encode(text, "UTF-8").replace("+", "%20")
+}
+
+/** One course in the catalogue (GET /api/mobile/staff?view=courses). */
+data class StaffCourse(
+    val id: String,
+    val title: String,
+    val code: String,
+    val courseType: String,
+    val status: String,
+    val tscTitle: String,
+    val tscCode: String,
+    val trainingHours: Double?,
+    val assessmentHours: Double?,
+    val fundingValidityEnd: String,
+    val upcomingRuns: Int,
+    val nextRun: String,
+) {
+    val fundingEnd: LocalDate? get() = parseDay(fundingValidityEnd)
+
+    fun expired(today: LocalDate = LocalDate.now(SGT)): Boolean =
+        title.contains("(expired)", true) || (fundingEnd?.isBefore(today) ?: false)
+
+    fun matches(query: String): Boolean {
+        val q = query.trim()
+        return q.isEmpty() || title.contains(q, true) || code.contains(q, true) || tscCode.contains(q, true)
+    }
+
+    companion object {
+        fun parse(o: JSONObject) = StaffCourse(
+            o.text("id"), o.text("title"), o.text("code"), o.text("courseType"), o.text("status"), o.text("tscTitle"), o.text("tscCode"),
+            o.number("trainingHours"), o.number("assessmentHours"), o.text("fundingValidityEnd"), o.optInt("upcomingRuns"), o.text("nextRun"),
+        )
+
+        fun parseAll(o: JSONObject): List<StaffCourse> = o.array("courses").objects().map(::parse)
     }
 }
 

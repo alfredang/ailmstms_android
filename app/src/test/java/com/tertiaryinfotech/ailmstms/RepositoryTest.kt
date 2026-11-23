@@ -33,8 +33,9 @@ class MemoryState : SessionState {
     override var brandColor = ""
     override var userProfile = ""
     override var mustChangePassword = false
+    override var adminSession = false
     override fun clear() {
-        token = ""; profile = ""; role = "learner"; loginRole = ""; pushEnabled = false; theme = "system"; brandColor = ""; userProfile = ""; mustChangePassword = false
+        token = ""; profile = ""; role = "learner"; loginRole = ""; pushEnabled = false; theme = "system"; brandColor = ""; userProfile = ""; mustChangePassword = false; adminSession = false
     }
 }
 

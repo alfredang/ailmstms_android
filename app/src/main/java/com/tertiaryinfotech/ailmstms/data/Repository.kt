@@ -78,16 +78,18 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
         request("/api/android/send-otp", JSONObject().put("email", email), auth = false)
     }
 
-    private fun startSession(data: JSONObject, loginRole: String): Profile {
+    /** [admin] is the admin sign-in (Google, allow-listed on the server): it always opens the Admin view. */
+    private fun startSession(data: JSONObject, loginRole: String, admin: Boolean = false): Profile {
         val user = data.getJSONObject("user")
         val profile = Profile.parse(user)
-        require(profile.roles.isNotEmpty()) { "This app is for learners and trainers only." }
+        require(admin || profile.roles.isNotEmpty()) { "This app is for learners and trainers only." }
         val token = data.text("token")
         require(token.startsWith("lms_")) { "Invalid sign-in response. Please try again." }
         store.token = token
         store.profile = user.toString()
+        store.adminSession = admin
         // One role per sign-in: the one chosen on the sign-in screen, when the account holds it.
-        store.role = Roles.resolve(loginRole, profile.roles)
+        store.role = if (admin) Roles.ADMIN else Roles.resolve(loginRole, profile.roles)
         store.loginRole = store.role
         return profile
     }
@@ -101,9 +103,9 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
     fun googleStartUrl(challenge: String): String = "$base/api/mobile/google-start?challenge=$challenge"
 
     /** Trades the single-use code from the Google callback plus the verifier for a session. */
-    suspend fun googleLogin(code: String, verifier: String, loginRole: String = Roles.LEARNER): Profile {
+    suspend fun googleLogin(code: String, verifier: String): Profile {
         val body = JSONObject().put("code", code).put("verifier", verifier)
-        return startSession(data(request("/api/mobile/google-exchange", body, auth = false)), loginRole)
+        return startSession(data(request("/api/mobile/google-exchange", body, auth = false)), Roles.ADMIN, admin = true)
     }
 
     suspend fun passwordLogin(email: String, password: String, loginRole: String = Roles.LEARNER): PasswordLogin {
@@ -265,6 +267,41 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
         if (!Regex("^[A-Za-z0-9-]{1,64}$").matches(userId)) throw ApiException(400, "Please sign in again to see your payouts.")
         return Payout.parseAll(request("/api/trainer/$userId/payout-history"))
     }
+
+    // The website's own routes (bearer session accepted). Their answers are not wrapped in "data".
+
+    override suspend fun publishAssessment(runId: String, type: String, published: Boolean) {
+        val body = JSONObject().put("courseRunId", runId).put("field", type).put("published", published)
+        request("/api/assessments/publish-link", body, "PUT")
+        // The written and practical papers also carry an older per-class flag; keep it in step so unpublishing really hides the paper.
+        legacyPublishField(type)?.let { request("/api/assessments/publish-link", JSONObject(body.toString()).put("field", it), "PUT") }
+    }
+
+    override suspend fun summaryRecord(runId: String, learnerView: Boolean): SummaryReply =
+        SummaryReply.parse(
+            request("/api/assessments/summary-record", query = listOf("courseRunId" to runId) + if (learnerView) listOf("view" to "learner") else emptyList()),
+        )
+
+    override suspend fun signSummaryRecord(runId: String, learnerUserId: String?): String? {
+        val body = JSONObject().put("courseRunId", runId).put("party", if (learnerUserId == null) "learner" else "trainer")
+        learnerUserId?.let { body.put("learnerUserId", it) }
+        return request("/api/assessments/summary-record", body).text("generationError").ifBlank { null }
+    }
+
+    override suspend fun signer(kind: SignerKind): SignerRecord = SignerRecord.parse(request(kind.path))
+
+    override suspend fun saveSigner(kind: SignerKind, name: String, nric: String, signaturePng: String?) {
+        request(kind.path, signerBody(kind, name, nric, signaturePng))
+    }
+
+    override suspend fun staffClasses(from: java.time.LocalDate, to: java.time.LocalDate): List<StaffClass> =
+        StaffClass.parseAll(request("/api/mobile/staff", query = listOf("view" to "classes", "from" to from.toString(), "to" to to.toString())))
+
+    override suspend fun staffCourses(): List<StaffCourse> =
+        StaffCourse.parseAll(request("/api/mobile/staff", query = listOf("view" to "courses")))
+
+    override suspend fun staffTrainers(): List<StaffTrainer> =
+        StaffTrainer.parseAll(request("/api/mobile/staff", query = listOf("view" to "trainers")))
 
     private companion object {
         val JSON = "application/json".toMediaType()

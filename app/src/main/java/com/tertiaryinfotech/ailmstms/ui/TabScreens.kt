@@ -81,7 +81,6 @@ fun HomeHeader(vm: LmsViewModel, onProfile: () -> Unit) {
     val colors = LocalLmsColors.current
     val accent = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
-    var roleMenu by remember { mutableStateOf(false) }
     val name = vm.userProfile?.fullName?.takeIf { it.isNotBlank() } ?: vm.profile?.name.orEmpty()
     val role = Roles.label(vm.role)
     val shape = RoundedCornerShape(18.dp)
@@ -108,29 +107,42 @@ fun HomeHeader(vm: LmsViewModel, onProfile: () -> Unit) {
                 }
             }
         }
-        if (vm.canSwitchRole) {
-            Box {
-                Row(
-                    Modifier.fillMaxWidth().clip(shape).background(colors.card).border(1.dp, colors.cardBorder, shape)
-                        .clickable(enabled = !vm.busy, onClickLabel = "Change role", role = Role.DropdownList) { roleMenu = true }
-                        .padding(horizontal = 18.dp, vertical = 14.dp).testTag("viewAsPicker"),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(EyeIcon, null, Modifier.size(22.dp), tint = accent)
-                    Text("View as", Modifier.weight(1f), fontSize = 17.sp, color = secondary)
-                    Text(role, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
-                    Icon(UnfoldIcon, null, Modifier.size(18.dp), tint = secondary)
-                }
-                DropdownMenu(expanded = roleMenu, onDismissRequest = { roleMenu = false }, containerColor = colors.card) {
-                    vm.availableRoles.forEach { r ->
-                        DropdownMenuItem(
-                            text = { Text(Roles.label(r)) },
-                            trailingIcon = { if (r == vm.role) Icon(Icons.Default.Check, "Selected", tint = accent) },
-                            onClick = { roleMenu = false; vm.switchRole(r) },
-                            modifier = Modifier.testTag("viewAs-$r"),
-                        )
-                    }
-                }
+        if (vm.canSwitchRole) ViewAsMenu(vm, boxed = true)
+    }
+}
+
+/**
+ * The owner's "View as" switcher: Learner, Trainer, Developer or Admin. Shown on the home tab and
+ * on the Account page. It changes what this device shows, never what the server allows.
+ */
+@Composable
+fun ViewAsMenu(vm: LmsViewModel, boxed: Boolean) {
+    val colors = LocalLmsColors.current
+    val accent = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    var roleMenu by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(18.dp)
+    Box {
+        Row(
+            Modifier.fillMaxWidth().clip(shape)
+                .then(if (boxed) Modifier.background(colors.card).border(1.dp, colors.cardBorder, shape) else Modifier)
+                .clickable(enabled = !vm.busy, onClickLabel = "Change role", role = Role.DropdownList) { roleMenu = true }
+                .padding(horizontal = if (boxed) 18.dp else 16.dp, vertical = 14.dp).testTag("viewAsPicker"),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(EyeIcon, null, Modifier.size(22.dp), tint = accent)
+            Text("View as", Modifier.weight(1f), fontSize = 17.sp, color = secondary)
+            Text(Roles.label(vm.role), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+            Icon(UnfoldIcon, null, Modifier.size(18.dp), tint = secondary)
+        }
+        DropdownMenu(expanded = roleMenu, onDismissRequest = { roleMenu = false }, containerColor = colors.card) {
+            vm.availableRoles.forEach { r ->
+                DropdownMenuItem(
+                    text = { Text(Roles.label(r)) },
+                    trailingIcon = { if (r == vm.role) Icon(Icons.Default.Check, "Selected", tint = accent) },
+                    onClick = { roleMenu = false; vm.switchRole(r) },
+                    modifier = Modifier.testTag("viewAs-$r"),
+                )
             }
         }
     }
@@ -208,6 +220,14 @@ fun MyClassesScreen(vm: LmsViewModel, onProfile: () -> Unit, onCalendar: () -> U
                         if (course.classStatus.isNotBlank()) StatusChip(course.classStatus, statusTone(course.classStatus))
                     }
                     Text(course.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 22.sp)
+                    // The class's real address from the server (the run's own street, else the academy's).
+                    if (course.format.isNotBlank()) Text(course.format, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (course.venue.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(PinIcon, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(course.venue, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("venue-${course.id}"))
+                        }
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(dateRange(course.start, course.end), Modifier.weight(1f), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Open class", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)

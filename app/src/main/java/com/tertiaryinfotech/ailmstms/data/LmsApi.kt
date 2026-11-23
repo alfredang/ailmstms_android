@@ -49,6 +49,34 @@ interface LmsApi {
 
     /** Trainer: every completed payout for the signed-in user, newest first. */
     suspend fun payouts(): List<Payout>
+
+    /** Trainer: the website's Publish switch for one assessment of the class. */
+    suspend fun publishAssessment(runId: String, type: String, published: Boolean)
+
+    /** The Assessment Summary Record: the learner's own ([learnerView]) or every learner's for the trainer. */
+    suspend fun summaryRecord(runId: String, learnerView: Boolean): SummaryReply
+
+    /**
+     * Signs the record: as the candidate (learner, [learnerUserId] null) or as the assessor for
+     * [learnerUserId]. Returns the server's note when the PDF could not be made yet, else null.
+     * Fails with a 409 when no signature is saved.
+     */
+    suspend fun signSummaryRecord(runId: String, learnerUserId: String?): String?
+
+    /** The saved name, NRIC and whether a drawn signature is on file. */
+    suspend fun signer(kind: SignerKind): SignerRecord
+
+    /** Saves the signer details; [signaturePng] is a PNG data URL, or null to keep the saved one. */
+    suspend fun saveSigner(kind: SignerKind, name: String, nric: String, signaturePng: String?)
+
+    /** Admin: every class run overlapping the dates (at most about three months). */
+    suspend fun staffClasses(from: java.time.LocalDate, to: java.time.LocalDate): List<StaffClass>
+
+    /** Admin and Developer: the course catalogue. */
+    suspend fun staffCourses(): List<StaffCourse>
+
+    /** Admin: every trainer with a WhatsApp number where the profile has one. */
+    suspend fun staffTrainers(): List<StaffTrainer>
 }
 
 const val MAX_UPLOAD_BYTES = 100L * 1024 * 1024

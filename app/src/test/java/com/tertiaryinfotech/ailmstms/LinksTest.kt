@@ -59,8 +59,9 @@ class LinksTest {
         assertEquals("trainer", Roles.legacy(listOf("learner", "trainer")))
         assertEquals("learner", Roles.legacy(listOf("learner")))
         assertEquals(listOf("trainer"), Roles.available("someone@example.com", listOf("learner", "trainer"), "trainer"))
-        assertEquals(listOf("learner", "trainer"), Roles.available(" AngCH@tertiaryinfotech.com", listOf("trainer", "learner"), "trainer"))
-        assertEquals(listOf("learner"), Roles.available("angch@tertiaryinfotech.com", listOf("learner"), "learner"))
+        // The owner account can view the app as every role, as on iOS (the server still checks each request).
+        assertEquals(listOf("learner", "trainer", "developer", "admin"), Roles.available(" AngCH@tertiaryinfotech.com", listOf("trainer", "learner"), "trainer"))
+        assertEquals(listOf("learner", "trainer", "developer", "admin"), Roles.available("angch@tertiaryinfotech.com", listOf("learner"), "learner"))
         assertEquals("S$3,350.00", money(3350.0))
     }
 

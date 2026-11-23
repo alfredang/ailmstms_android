@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -74,11 +75,14 @@ private const val TAB_THIRD = 2
 private const val TAB_FOURTH = 3
 private const val TAB_ACCOUNT = 4
 
-/** The tabs for the role being viewed. A later role adds its own branch here. */
+/** The tabs for the role being viewed. Developer and Admin: Home, Calendar, Courses, Account. */
 private fun tabsFor(role: String): List<TabSpec> = buildList {
-    add(TabSpec(TAB_CLASSES, "My Classes", SchoolIcon))
+    val staff = Roles.isStaff(role)
+    add(if (staff) TabSpec(TAB_CLASSES, "Home", Icons.Default.Home) else TabSpec(TAB_CLASSES, "My Classes", SchoolIcon))
     add(TabSpec(TAB_CALENDAR, "Calendar", Icons.Default.DateRange))
-    if (role == Roles.TRAINER) {
+    if (staff) {
+        add(TabSpec(TAB_THIRD, "Courses", BooksIcon))
+    } else if (role == Roles.TRAINER) {
         add(TabSpec(TAB_THIRD, "Payout", PaymentsIcon))
         add(TabSpec(TAB_FOURTH, "Hours", ClockIcon))
     } else {
@@ -154,7 +158,7 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
                 },
                 actions = {
                     if (signedIn && !gated && top == null) {
-                        IconButton(onClick = vm::refresh, enabled = !vm.busy) { Icon(Icons.Default.Refresh, "Refresh classes") }
+                        IconButton(onClick = vm::refresh, enabled = !vm.busy, modifier = Modifier.testTag("refresh")) { Icon(Icons.Default.Refresh, "Refresh") }
                     }
                     if (signedIn && !gated && top is Screen.Pdf) {
                         if (vm.downloading) {
@@ -229,6 +233,12 @@ fun Root(openCalendar: Boolean, onCalendarOpened: () -> Unit, vm: LmsViewModel) 
                         is Screen.Feedback -> FeedbackScreen(vm, top)
                         is Screen.Quiz -> QuizScreen(vm, top)
                         Screen.ChangePassword -> PasswordScreen(vm, forced = false)
+                    }
+                    vm.isStaffView -> when (tab) {
+                        TAB_CALENDAR -> if (vm.role == Roles.ADMIN) AdminCalendarScreen(vm) else CalendarScreen(vm)
+                        TAB_THIRD -> StaffCoursesScreen(vm)
+                        TAB_ACCOUNT -> AccountScreen(vm, onNotifications)
+                        else -> StaffHomeScreen(vm, onProfile = { tab = TAB_ACCOUNT })
                     }
                     else -> when (tab) {
                         TAB_CALENDAR -> CalendarScreen(vm)

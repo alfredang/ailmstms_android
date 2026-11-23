@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.FileProvider
 import com.tertiaryinfotech.ailmstms.data.isSafeLink
 import kotlinx.coroutines.Dispatchers
@@ -101,6 +102,16 @@ fun shareFile(context: Context, file: File, title: String) {
     val chooser = Intent.createChooser(send, file.name).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     if (context !is Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     context.startActivity(chooser)
+}
+
+/**
+ * Opens an https link in the in-app browser (a Custom Tab, like Safari View on iPhone): portal
+ * pages such as the SWDA enrolment form, TRAQOM and signed records. Falls back to [openLink].
+ */
+fun openInApp(context: Context, url: String) {
+    if (!isSafeLink(url)) return
+    runCatching { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(context, Uri.parse(url)) }
+        .onFailure { openLink(context, url) }
 }
 
 /** Opens an https link in the browser or the app that handles it. Unsafe links are ignored. */
@@ -146,6 +157,18 @@ val EyeIcon by lazy {
 }
 val UnfoldIcon by lazy { icon("Unfold", "M12,5.83L15.17,9l1.41,-1.41L12,3L7.41,7.59L8.83,9z M12,18.17L8.83,15l-1.41,1.41L12,21l4.59,-4.59L15.17,15z") }
 val ChatIcon by lazy { icon("Chat", "M4,4h16v12H9l-5,4z M6,6v9.8L8.3,14H18V6z") }
+val FolderIcon by lazy { icon("Folder", "M3,5h7l2,2h9v12H3z M5,9v8h14V9z") }
+val MegaphoneIcon by lazy { icon("Megaphone", "M3,9h4l8,-5v16l-8,-5H3z M17,8.5h2v7h-2z M6,16h3l1.2,4H7.2z") }
+val ChartIcon by lazy { icon("Chart", "M4,19h16v2H4z M5,11h3v7H5z M10.5,6h3v12h-3z M16,9h3v9h-3z") }
+val SealIcon by lazy { icon("Seal", "M12,2l2.4,1.8l3,-0.2l0.9,2.9l2.5,1.7l-1,2.8l1,2.8l-2.5,1.7l-0.9,2.9l-3,-0.2L12,20l-2.4,-1.8l-3,0.2l-0.9,-2.9l-2.5,-1.7l1,-2.8l-1,-2.8l2.5,-1.7l0.9,-2.9l3,0.2z M10.6,13.2l-2.1,-2.1l-1.4,1.4l3.5,3.5l6.2,-6.2l-1.4,-1.4z") }
+val PinIcon by lazy { icon("Pin", "M12,2a7,7 0 0,1 7,7c0,5 -7,13 -7,13s-7,-8 -7,-13a7,7 0 0,1 7,-7z M12,6.5a2.5,2.5 0 1,0 0,5a2.5,2.5 0 1,0 0,-5z") }
+val BooksIcon by lazy { icon("Books", "M4,3h4v18H4z M10,3h4v18h-4z M15.2,4.3l3.9,-1l4.4,17.4l-3.9,1z") }
+val StarOutlineIcon by lazy {
+    icon("StarOutline", "M22,9.24l-7.19,-0.62L12,2L9.19,8.63L2,9.24l5.46,4.73L5.82,21L12,17.27L18.18,21l-1.63,-7.03L22,9.24z M12,15.4l-3.76,2.27l1,-4.28l-3.32,-2.88l4.38,-0.38L12,6.1l1.71,4.04l4.38,0.38l-3.32,2.88l1,4.28L12,15.4z")
+}
+val StarHalfIcon by lazy {
+    icon("StarHalf", "M22,9.24l-7.19,-0.62L12,2L9.19,8.63L2,9.24l5.46,4.73L5.82,21L12,17.27L18.18,21l-1.63,-7.03L22,9.24z M12,15.4V6.1l1.71,4.04l4.38,0.38l-3.32,2.88l1,4.28L12,15.4z")
+}
 val LinkIcon by lazy { icon("Link", "M4,12a4,4 0 0,1 4,-4h3v2H8a2,2 0 0,0 0,4h3v2H8a4,4 0 0,1 -4,-4z M13,8h3a4,4 0 0,1 0,8h-3v-2h3a2,2 0 0,0 0,-4h-3z M8,11h8v2H8z") }
 
 // ---------------------------------------------------------------- building blocks
@@ -247,6 +270,7 @@ fun StatusChip(text: String, tone: Tone = Tone.Neutral, solid: Boolean = false) 
             Tone.Good -> colors.successContainer to colors.onSuccessContainer
             Tone.Bad -> scheme.errorContainer to scheme.onErrorContainer
             Tone.Info -> scheme.primaryContainer to scheme.onPrimaryContainer
+            Tone.Warn -> colors.warning.copy(alpha = 0.25f) to scheme.onSurface
             Tone.Neutral -> scheme.surfaceVariant to scheme.onSurfaceVariant
         }
     } else {
@@ -254,6 +278,7 @@ fun StatusChip(text: String, tone: Tone = Tone.Neutral, solid: Boolean = false) 
             Tone.Good -> colors.success
             Tone.Bad -> scheme.error
             Tone.Info -> scheme.primary
+            Tone.Warn -> colors.warning
             Tone.Neutral -> scheme.onSurfaceVariant
         }
         tint.copy(alpha = if (colors.dark) 0.20f else 0.12f) to tint
@@ -264,7 +289,47 @@ fun StatusChip(text: String, tone: Tone = Tone.Neutral, solid: Boolean = false) 
     )
 }
 
-enum class Tone { Good, Bad, Info, Neutral }
+enum class Tone { Good, Bad, Info, Warn, Neutral }
+
+/** Confirmed green, cancelled red, anything else (Pending, Unconfirmed, Reschedule) orange, as on the website. */
+fun classStatusTone(status: String): Tone {
+    val s = status.trim().lowercase()
+    return when {
+        s == "confirmed" -> Tone.Good
+        s.startsWith("cancel") -> Tone.Bad
+        else -> Tone.Warn
+    }
+}
+
+/** One figure in a row of three (Training / Assessment / Total hours, the staff counts). */
+@Composable
+fun HoursTile(label: String, value: String, modifier: Modifier = Modifier, strong: Boolean = false) {
+    Column(
+        modifier.clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)).padding(vertical = 8.dp, horizontal = 4.dp)
+            .semantics(mergeDescendants = true) { },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = if (strong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, maxLines = 1)
+        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, lineHeight = 15.sp)
+    }
+}
+
+/** Three tiles side by side, sharing the width. */
+@Composable
+fun TileRow(vararg tiles: Triple<String, String, Boolean>) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        tiles.forEach { (label, value, strong) -> HoursTile(label, value, Modifier.weight(1f), strong) }
+    }
+}
+
+/** A label over its value, so long labels such as "Digital Attendance ID" never squeeze the value. */
+@Composable
+fun InfoRow(label: String, value: String) {
+    Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontSize = 15.sp, lineHeight = 20.sp)
+    }
+}
 
 /** A tappable card row with a tinted icon, a title, an optional line of detail and a chevron. */
 @Composable

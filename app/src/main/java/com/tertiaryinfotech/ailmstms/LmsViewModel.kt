@@ -31,6 +31,14 @@ import com.tertiaryinfotech.ailmstms.data.QuizResult
 import com.tertiaryinfotech.ailmstms.data.parseQuizLink
 import com.tertiaryinfotech.ailmstms.data.Roles
 import com.tertiaryinfotech.ailmstms.data.RosterEntry
+import com.tertiaryinfotech.ailmstms.data.SGT
+import com.tertiaryinfotech.ailmstms.data.SignerKind
+import com.tertiaryinfotech.ailmstms.data.SignerRecord
+import com.tertiaryinfotech.ailmstms.data.StaffClass
+import com.tertiaryinfotech.ailmstms.data.StaffCourse
+import com.tertiaryinfotech.ailmstms.data.StaffTrainer
+import com.tertiaryinfotech.ailmstms.data.SummaryReply
+import com.tertiaryinfotech.ailmstms.data.needsSignatureSetup
 import com.tertiaryinfotech.ailmstms.data.ThemeMode
 import com.tertiaryinfotech.ailmstms.data.UploadSource
 import com.tertiaryinfotech.ailmstms.data.UserProfile
@@ -44,13 +52,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.File
+import java.time.LocalDate
+import java.time.YearMonth
 
 /** A screen opened on top of the tabs. */
 sealed interface Screen {
     val title: String
 
     data class ClassRoom(val id: String) : Screen {
-        override val title = "Class"
+        override val title = "Class details"
     }
 
     data class Pdf(val name: String, val url: String) : Screen {
@@ -99,6 +109,11 @@ data class DownloadedFile(val file: File, val title: String)
 data class DownloadProblem(val message: String, val url: String)
 
 class LmsViewModel(app: Application) : AndroidViewModel(app) {
+    companion object {
+        /** Stands for the learner themself in [summarySigning]. */
+        const val SELF = "self"
+    }
+
     private val lms = app as LmsApplication
     val repo = lms.repo
     private var demo = DemoApi()
@@ -118,6 +133,9 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     val availableRoles: List<String>
         get() = if (isDemo) listOf(role) else Roles.available(profile?.email, profile?.roles.orEmpty(), role)
     val canSwitchRole: Boolean get() = availableRoles.size > 1
+
+    /** Showing a back-office role (Developer or Admin) rather than Learner or Trainer. */
+    val isStaffView: Boolean get() = Roles.isStaff(role)
     var busy by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
     var pushEnabled by mutableStateOf(repo.store.pushEnabled); private set
@@ -141,6 +159,8 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
 
     // Per-screen state
     var classState by mutableStateOf<Load<ClassDetail>>(Load.Idle); private set
+    /** The class page's opened sections. All start collapsed; kept while a PDF, quiz or form is open on top. */
+    val openSections = mutableStateListOf<String>()
     var attendanceState by mutableStateOf<Load<AttendanceSheet>>(Load.Idle); private set
     val attendanceDraft = mutableStateMapOf<String, AttendanceLearner>()
     var working by mutableStateOf(false); private set
@@ -154,6 +174,35 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
 
     // Trainer payouts (the Payout tab). Idle until the tab is first opened.
     var payoutState by mutableStateOf<Load<List<Payout>>>(Load.Idle); private set
+
+    // Admin and Developer pages (GET /api/mobile/staff). Idle until first shown.
+    var adminClasses by mutableStateOf<Load<List<StaffClass>>>(Load.Idle); private set
+    var catalogue by mutableStateOf<Load<List<StaffCourse>>>(Load.Idle); private set
+    /** Admin: trainers to WhatsApp about a class. Loaded when the picker first opens. */
+    var staffTrainers by mutableStateOf<Load<List<StaffTrainer>>>(Load.Idle); private set
+    var calendarClasses by mutableStateOf<List<StaffClass>>(emptyList()); private set
+    var calendarMonth by mutableStateOf<YearMonth?>(null); private set
+    var calendarLoading by mutableStateOf(false); private set
+    var calendarProblem by mutableStateOf<String?>(null); private set
+    private var calendarJob: Job? = null
+    private var pendingMonth: YearMonth? = null
+
+    // Assessment Summary Record of the open class, and the signature setup sheet.
+    var summaryState by mutableStateOf<Load<SummaryReply>>(Load.Idle); private set
+    private var summaryRunId: String? = null
+    /** Learners being signed for (the trainer), or [SELF] while the learner signs. */
+    val summarySigning = mutableStateListOf<String>()
+    var summaryProblem by mutableStateOf<String?>(null)
+    var signerSheet by mutableStateOf<SignerKind?>(null); private set
+    var signerState by mutableStateOf<Load<SignerRecord>>(Load.Idle); private set
+    var signerSaving by mutableStateOf(false); private set
+    var signerProblem by mutableStateOf<String?>(null)
+    /** Who to sign for once the signature is saved: [SELF] for the learner, learner ids for the assessor. */
+    private var pendingSign: List<String> = emptyList()
+
+    // The trainer's Publish switches: assessments being saved and the last failure per assessment.
+    val publishing = mutableStateListOf<String>()
+    val publishProblems = mutableStateMapOf<String, String>()
 
     // Download from the in-app reader: fetched here, handed to the share sheet by the screen.
     var downloading by mutableStateOf(false); private set
@@ -179,9 +228,10 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
             if (signedIn == null) {
                 repo.store.clear()
             } else {
-                // A session from before the "Sign in as" choice keeps the trainer view when the account teaches.
+                // A session from before the "Sign in as" choice keeps the trainer view when the account teaches;
+                // the owner keeps the role last viewed as, and an admin sign-in keeps Admin.
                 val stored = repo.store.loginRole
-                val active = if (stored.isEmpty()) Roles.legacy(signedIn.roles) else Roles.resolve(repo.store.role, signedIn.roles)
+                val active = Roles.restore(signedIn.email, repo.store.role, stored, repo.store.adminSession, signedIn.roles)
                 if (stored.isEmpty()) repo.store.loginRole = active
                 if (repo.store.role != active) repo.store.role = active
                 role = active
@@ -223,6 +273,8 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         downloaded = null
         downloadProblem = null
         payoutState = Load.Idle
+        resetStaff()
+        resetSummary()
         loginRole = Roles.LEARNER
         role = Roles.LEARNER
         isDemo = false
@@ -292,7 +344,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     // ---------------------------------------------------------------- sign-in
 
     fun chooseLoginRole(value: String) {
-        if (value in Roles.ALL) loginRole = value
+        if (value in Roles.CLASSROOM) loginRole = value
     }
 
     /** Shown once when the sign-in could not give the role that was asked for. */
@@ -306,11 +358,14 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun enterDemo() {
+    /** [asRole] opens the demo as any role (Developer and Admin too); used by tests and debug launches. */
+    fun enterDemo(asRole: String? = null) {
         demo = DemoApi()
         isDemo = true
         pushEnabled = false
-        role = Roles.resolve(loginRole, DemoApi.PROFILE.roles)
+        resetStaff()
+        resetSummary()
+        role = asRole?.takeIf { it in Roles.ALL } ?: Roles.resolve(loginRole, DemoApi.PROFILE.roles)
         profile = DemoApi.PROFILE
         userProfile = DemoApi.PROFILE_DETAIL
         themeMode = ThemeMode.SYSTEM
@@ -318,7 +373,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         error = null
         stack.clear()
         openPendingQuiz()
-        action { dashboard = demo.dashboard(role) }
+        if (isStaffView) dashboard = Dashboard.EMPTY else action { dashboard = demo.dashboard(role) }
     }
 
     fun choosePassword(value: Boolean) {
@@ -352,7 +407,9 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         if (mustChangePassword) return
         // Before the classes are fetched, so a scanned quiz opens even if that fetch fails.
         openPendingQuiz()
-        dashboard = repo.dashboard(role)
+        resetStaff()
+        // Developer and Admin have no class data of their own in the app: their pages load on their own.
+        dashboard = if (isStaffView) Dashboard.EMPTY else repo.dashboard(role)
         loadProfileQuietly()
     }
 
@@ -388,10 +445,8 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
             error = message?.takeIf { it.isNotBlank() } ?: "Google sign-in did not complete. Please try again."
             return
         }
-        action {
-            val chosen = loginRole
-            afterSignIn(repo.googleLogin(code, verifier, chosen), chosen)
-        }
+        // An admin sign-in opens the Admin view, whatever was chosen on the sign-in screen.
+        action { afterSignIn(repo.googleLogin(code, verifier), Roles.ADMIN) }
     }
 
     fun loginWithPassword() = action {
@@ -410,12 +465,20 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     // ---------------------------------------------------------------- dashboard, role, reminders
 
     private fun syncAlerts() {
-        if (isDemo) return
+        // Developer and Admin leave the learner/trainer reminders already scheduled on this device alone.
+        if (isDemo || isStaffView) return
         if (repo.store.pushEnabled) ClassAlerts.sync(lms, dashboard) else ClassAlerts.cancelAll(lms)
     }
 
     fun refresh() = action {
-        dashboard = api.dashboard(role)
+        if (isStaffView) {
+            dashboard = Dashboard.EMPTY
+            if (adminClasses !is Load.Idle) loadAdminClasses()
+            if (catalogue !is Load.Idle) loadCatalogue()
+            calendarMonth?.let { loadCalendar(it, force = true) }
+        } else {
+            dashboard = api.dashboard(role)
+        }
         if (payoutState !is Load.Idle) loadPayouts()
         if (isDemo) return@action
         if (repo.store.pushEnabled) PushSyncWorker.enqueue(lms)
@@ -431,9 +494,105 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         role = value
         closeAll()
         payoutState = Load.Idle
+        resetStaff()
         dashboard = Dashboard.EMPTY
-        dashboard = api.dashboard(value)
+        if (!isStaffView) dashboard = api.dashboard(value)
         syncAlerts()
+    }
+
+    // ---------------------------------------------------------------- Admin and Developer
+
+    private fun resetStaff() {
+        adminClasses = Load.Idle
+        catalogue = Load.Idle
+        staffTrainers = Load.Idle
+        calendarJob?.cancel()
+        pendingMonth = null
+        calendarClasses = emptyList()
+        calendarMonth = null
+        calendarLoading = false
+        calendarProblem = null
+    }
+
+    /** Admin home: classes running today and in the next 30 days. */
+    fun loadAdminClasses() {
+        if (role != Roles.ADMIN) return
+        if (adminClasses !is Load.Ready) adminClasses = Load.Loading
+        viewModelScope.launch {
+            try {
+                val today = LocalDate.now(SGT)
+                val list = api.staffClasses(today, today.plusDays(30))
+                if (role == Roles.ADMIN && profile != null) adminClasses = Load.Ready(list)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null && adminClasses !is Load.Ready) adminClasses = Load.Failed(message)
+            }
+        }
+    }
+
+    /** Admin and Developer: the course catalogue. */
+    fun loadCatalogue() {
+        if (!isStaffView) return
+        if (catalogue !is Load.Ready) catalogue = Load.Loading
+        viewModelScope.launch {
+            try {
+                val list = api.staffCourses()
+                if (isStaffView && profile != null) catalogue = Load.Ready(list)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null && catalogue !is Load.Ready) catalogue = Load.Failed(message)
+            }
+        }
+    }
+
+    /** Admin: the trainer list for "WhatsApp a trainer". */
+    fun loadTrainers() {
+        if (role != Roles.ADMIN) return
+        if (staffTrainers !is Load.Ready) staffTrainers = Load.Loading
+        viewModelScope.launch {
+            try {
+                val list = api.staffTrainers()
+                if (role == Roles.ADMIN && profile != null) staffTrainers = Load.Ready(list)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null && staffTrainers !is Load.Ready) staffTrainers = Load.Failed(message)
+            }
+        }
+    }
+
+    /** Admin calendar: one month at a time, plus a week either side so classes crossing the edges show. */
+    fun loadCalendar(month: YearMonth, force: Boolean = false) {
+        if (role != Roles.ADMIN) return
+        if (!force && (calendarMonth == month || pendingMonth == month)) return
+        pendingMonth = month
+        calendarJob?.cancel()
+        calendarLoading = true
+        calendarJob = viewModelScope.launch {
+            try {
+                val list = api.staffClasses(month.atDay(1).minusDays(7), month.atEndOfMonth().plusDays(7))
+                if (role == Roles.ADMIN && profile != null) {
+                    calendarClasses = list
+                    calendarMonth = month
+                    calendarProblem = null
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null) calendarProblem = message
+            } finally {
+                if (pendingMonth == month) {
+                    calendarLoading = false
+                    pendingMonth = null
+                }
+            }
+        }
     }
 
     // ---------------------------------------------------------------- trainer payouts
@@ -562,6 +721,8 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openClass(id: String) {
         if (id.isBlank()) return
+        resetSummary()
+        openSections.clear()
         stack.add(Screen.ClassRoom(id))
         loadClass(id)
     }
@@ -591,6 +752,10 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun currentClass(): ClassDetail? = (classState as? Load.Ready)?.value
+
+    fun toggleSection(title: String) {
+        if (!openSections.remove(title)) openSections.add(title)
+    }
 
     // ---------------------------------------------------------------- attendance
 
@@ -712,6 +877,162 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         classState = Load.Ready(detail.copy(roster = detail.roster.map { if (it.enrolmentId == learner.enrolmentId) it.copy(status = status) else it }))
         notice = "${learner.name}: $status"
         loadClass(detail.id, quiet = true)
+    }
+
+    // ---------------------------------------------------------------- trainer: Publish switch
+
+    /** The website's Publish switch for one assessment. Shown at once; put back if the server refuses. */
+    fun publishAssessment(detail: ClassDetail, assessment: Assessment, value: Boolean) {
+        if (assessment.type in publishing) return
+        publishing.add(assessment.type)
+        publishProblems.remove(assessment.type)
+        fun show(published: Boolean) {
+            currentClass()?.takeIf { it.id == detail.id }?.let { now ->
+                classState = Load.Ready(now.copy(assessments = now.assessments.map { if (it.type == assessment.type) it.copy(published = published) else it }))
+            }
+        }
+        show(value)
+        viewModelScope.launch {
+            try {
+                api.publishAssessment(detail.id, assessment.type, value)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                show(!value)
+                if (profile != null) publishProblems[assessment.type] = message
+            } finally {
+                publishing.remove(assessment.type)
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- Assessment Summary Record
+
+    private fun resetSummary() {
+        summaryState = Load.Idle
+        summaryRunId = null
+        summarySigning.clear()
+        summaryProblem = null
+        signerSheet = null
+        signerState = Load.Idle
+        signerProblem = null
+        pendingSign = emptyList()
+    }
+
+    /** The learner's own record, or every learner's for the trainer. */
+    fun loadSummary(runId: String, quiet: Boolean = false) {
+        if (summaryRunId != runId) {
+            summaryRunId = runId
+            summaryState = Load.Idle
+            summaryProblem = null
+        }
+        if (!quiet && summaryState !is Load.Ready) summaryState = Load.Loading
+        val learnerView = role != Roles.TRAINER
+        viewModelScope.launch {
+            try {
+                val reply = api.summaryRecord(runId, learnerView)
+                if (summaryRunId == runId) summaryState = Load.Ready(reply)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile == null || summaryRunId != runId) return@launch
+                if (summaryState is Load.Ready) summaryProblem = message else summaryState = Load.Failed(message)
+            }
+        }
+    }
+
+    /** Learner: sign my record. With no saved signature the setup sheet opens first, then the record is signed. */
+    fun signMyRecord(runId: String) {
+        val reply = (summaryState as? Load.Ready)?.value
+        if (reply?.hasSignature == true) sign(runId, listOf(SELF)) else openSigner(SignerKind.LEARNER, listOf(SELF))
+    }
+
+    /** Trainer: sign as assessor for each learner in turn. The server checks the assessor profile. */
+    fun signAsAssessor(runId: String, learnerIds: List<String>) = sign(runId, learnerIds)
+
+    private fun sign(runId: String, ids: List<String>) {
+        if (ids.isEmpty() || summarySigning.isNotEmpty()) return
+        summaryProblem = null
+        viewModelScope.launch {
+            try {
+                for ((index, id) in ids.withIndex()) {
+                    summarySigning.add(id)
+                    try {
+                        val note = api.signSummaryRecord(runId, id.takeIf { it != SELF })
+                        if (note != null) summaryProblem = "Signed. The PDF will follow: $note"
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        if (e is ApiException && e.sessionEnded) {
+                            failure(e)
+                            return@launch
+                        }
+                        if (needsSignatureSetup(e)) {
+                            // No saved signature yet: set it up, then carry on from this learner.
+                            openSigner(if (id == SELF) SignerKind.LEARNER else SignerKind.ASSESSOR, ids.drop(index))
+                        } else {
+                            summaryProblem = failure(e)
+                        }
+                        break
+                    } finally {
+                        summarySigning.remove(id)
+                    }
+                }
+            } finally {
+                summarySigning.clear()
+                if (profile != null && summaryRunId == runId) loadSummary(runId, quiet = true)
+            }
+        }
+    }
+
+    /** Opens the name, NRIC and signature sheet. [then] is who to sign for once it is saved. */
+    fun openSigner(kind: SignerKind, then: List<String> = emptyList()) {
+        pendingSign = then
+        signerProblem = null
+        signerSheet = kind
+        signerState = Load.Loading
+        viewModelScope.launch {
+            signerState = try {
+                Load.Ready(api.signer(kind))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (e is ApiException && e.sessionEnded) failure(e)
+                // A first-time signer has nothing saved: start from an empty form.
+                Load.Ready(SignerRecord(userProfile?.fullName ?: profile?.name.orEmpty(), "", false))
+            }
+        }
+    }
+
+    fun closeSigner() {
+        if (signerSaving) return
+        signerSheet = null
+        pendingSign = emptyList()
+    }
+
+    /** Saves the signer details; [signaturePng] is null to keep the saved signature. Then signs whatever was waiting. */
+    fun saveSigner(kind: SignerKind, name: String, nric: String, signaturePng: String?) {
+        if (signerSaving) return
+        signerSaving = true
+        signerProblem = null
+        viewModelScope.launch {
+            try {
+                api.saveSigner(kind, name, nric, signaturePng)
+                val then = pendingSign
+                pendingSign = emptyList()
+                signerSheet = null
+                summaryRunId?.let { runId -> if (then.isNotEmpty()) sign(runId, then) else loadSummary(runId, quiet = true) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null) signerProblem = message
+            } finally {
+                signerSaving = false
+            }
+        }
     }
 
     // ---------------------------------------------------------------- course feedback

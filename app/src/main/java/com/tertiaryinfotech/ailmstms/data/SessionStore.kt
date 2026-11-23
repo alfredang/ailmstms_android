@@ -25,6 +25,9 @@ interface SessionState {
     /** True after a password sign-in that must be followed by a password change. */
     var mustChangePassword: Boolean
 
+    /** True after an admin sign-in (Google), until sign-out, so a relaunch still shows Admin. */
+    var adminSession: Boolean
+
     /** Ends the session. The device's push token is kept so it can be unregistered or reused. */
     fun clear()
 }
@@ -71,6 +74,10 @@ class SessionStore(context: Context) : SessionState {
     override var mustChangePassword: Boolean
         get() = prefs.getBoolean("mustChangePassword", false)
         set(v) = prefs.edit().putBoolean("mustChangePassword", v).apply()
+
+    override var adminSession: Boolean
+        get() = prefs.getBoolean("adminSession", false)
+        set(v) = prefs.edit().putBoolean("adminSession", v).apply()
 
     override fun clear() {
         val device = pushToken

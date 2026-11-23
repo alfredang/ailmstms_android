@@ -110,6 +110,11 @@ fun AccountScreen(vm: LmsViewModel, onNotifications: (Boolean) -> Unit) {
             saved?.academy?.takeIf { it.isNotBlank() }?.let { Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
 
+        if (vm.canSwitchRole) {
+            InfoCard(padding = 0.dp) { ViewAsMenu(vm, boxed = false) }
+            Footnote("Owner account only: see the app as each role. The server still checks every request.")
+        }
+
         SectionLabel("Contact")
         InfoCard(padding = 0.dp) {
             ContactRow(Icons.Default.Email, "Email", email) { openContact(context, "mailto:$email") }

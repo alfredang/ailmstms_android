@@ -123,10 +123,10 @@ fun LoginScreen(vm: LmsViewModel) {
                 // One role per sign-in. Chosen before signing in (and before entering the demo).
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().testTag("loginRole")) {
-                        Roles.ALL.forEachIndexed { i, role ->
+                        Roles.CLASSROOM.forEachIndexed { i, role ->
                             SegmentedButton(
                                 selected = vm.loginRole == role, onClick = { vm.chooseLoginRole(role) }, enabled = !vm.busy,
-                                shape = SegmentedButtonDefaults.itemShape(i, Roles.ALL.size),
+                                shape = SegmentedButtonDefaults.itemShape(i, Roles.CLASSROOM.size),
                                 icon = {},
                                 colors = SegmentedButtonDefaults.colors(
                                     activeContainerColor = lms.card, activeContentColor = MaterialTheme.colorScheme.primary, activeBorderColor = lms.cardBorder,

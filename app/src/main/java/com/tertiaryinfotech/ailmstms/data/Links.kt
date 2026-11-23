@@ -96,3 +96,30 @@ fun downloadSource(url: String): String? {
     }
     return url
 }
+
+/** A link the server may send as a path on the portal ("/enrol/<id>"): made absolute on [base], then checked. */
+fun portalUrl(raw: String?, base: String): String? {
+    val text = raw?.trim().orEmpty()
+    if (text.isEmpty()) return null
+    val absolute = if (text.startsWith("/") && !text.startsWith("//")) base.trimEnd('/') + text else text
+    return absolute.takeIf(::isSafeLink)
+}
+
+/** The venue's address in Google Maps. */
+fun mapsUrl(address: String): String =
+    "https://www.google.com/maps/search/?api=1&query=" + java.net.URLEncoder.encode(address.trim(), "UTF-8").replace("+", "%20")
+
+/** "Google Meet", "Zoom" or "Microsoft Teams" from a meeting link, named like the website's Virtual Class Link. */
+fun meetingProvider(url: String): String {
+    val host = runCatching { URI(url.trim()).host?.lowercase() }.getOrNull().orEmpty()
+    return when {
+        "zoom." in host -> "Zoom"
+        "teams." in host || "microsoft" in host -> "Microsoft Teams"
+        "meet.google" in host -> "Google Meet"
+        else -> "online class"
+    }
+}
+
+/** The trainer's two SSG attendance links on MySkillsFuture, built from the Digital Attendance ID. */
+fun ssgQrAttendanceUrl(da: String): String = "https://www.myskillsfuture.gov.sg/spface/splogin/select-session?course-run-code=" + da.trim()
+fun ssgAttendanceListUrl(da: String): String = "https://www.myskillsfuture.gov.sg/api/take-attendance/" + da.trim()

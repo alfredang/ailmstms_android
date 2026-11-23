@@ -7,7 +7,7 @@ android {
  compileSdk=36
  defaultConfig {
   applicationId="com.tertiaryinfotech.ailmstms"; minSdk=26; targetSdk=36
-  versionCode=6; versionName="1.2.0"
+  versionCode=7; versionName="1.3.0"
   testInstrumentationRunner="androidx.test.runner.AndroidJUnitRunner"
   buildConfigField("String","API_BASE_URL","\"https://lms-tms.tertiaryinfotech.com\"")
  }
@@ -23,6 +23,8 @@ android {
 dependencies {
  implementation(platform("androidx.compose:compose-bom:2024.12.01"))
  implementation("androidx.core:core-ktx:1.15.0")
+ // Custom Tabs: the in-app browser for portal pages (SWDA enrolment form, TRAQOM, signed records).
+ implementation("androidx.browser:browser:1.8.0")
  implementation("androidx.activity:activity-compose:1.9.3")
  implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
  implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
