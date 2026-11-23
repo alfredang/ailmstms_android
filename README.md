@@ -7,15 +7,17 @@ Kotlin and Jetpack Compose companion for Tertiary Infotech Academy learners and 
 [![Download from Google Play Store](https://img.shields.io/badge/Download_from-Google_Play_Store-414141?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.tertiaryinfotech.ailmstms)
 
 - Sign in with an email code or a password (existing accounts only), with encrypted local session storage and a forced password change when the academy requires one.
-- Class detail for every course: dates, venue, status, join-online link, sessions, courseware, assessments, feedback and TRAQOM.
+- Class page in the website's section order and names, laid out for the phone: a summary card (course code, run, class type and status, dates, venue with Google Maps, trainer, Join Google Meet / Zoom / Teams), then collapsible sections that start closed: Course Details, E-Attendance, SWDA Enrolment, Announcements, Courseware, Lesson, Course Feedback & TRAQOM Survey, Briefing on Assessment, Assessment, Assessment Summary Record, Assessment Grading and Post Course Feedback Summary.
 - Courseware opens inside the app when it is a PDF (Google Drive, Slides and Docs links included), with zoom and a page indicator; anything else opens in the browser.
 - Monthly class calendar in Singapore time; tapping a session opens its class.
 - Learners: scan the class QR code to check in, open SSG e-attendance, submit assessment files, send course feedback.
 - Class quizzes: scanning the trainer's quiz QR code (`https://lms-tms.tertiaryinfotech.com/quiz/<courseId>/<quizId>`) opens the quiz in the app: one question at a time, then the score with the correct answers, and Retake.
-- Trainers: show a session's check-in QR code, mark attendance by hand, record Competent / Not Yet Competent.
+- Trainers: show a session's check-in QR code, mark attendance by hand, publish each assessment, record Competent / Not Yet Competent, open the SSG QR Attendance and E-Attendance List, and read the Post Course Feedback Summary (averages and comments, no names).
+- Assessment Summary Record e-signing: learners sign as candidate, trainers as assessor (one by one or all at once), with a finger-drawn signature saved once.
 - Profile editing and a light, dark or system theme saved to the profile.
 - Push reminders three days and one day before each class, plus local alerts 24 hours before and at 08:00 on the day.
-- Learner/trainer switching where both roles are assigned; no administrative or finance UI.
+- Learner/trainer switching where both roles are assigned; an admin Google sign-in shows Admin, and the owner account can view as Learner, Trainer, Developer or Admin.
+- Admin (read-only): Current and Upcoming classes, the academy calendar, the course catalogue, and WhatsApp a trainer about a class. Developer: the course catalogue. No finance UI; class status and trainer assignment stay on the website.
 - Clearly labelled fictional demo covering every screen, with no network calls.
 
 ## App preview
@@ -47,7 +49,7 @@ building a distribution bundle. Server credentials must never be placed in the a
 | `MainActivity.kt`, `LmsViewModel.kt`, `Push.kt` | Activity, app state and navigation, application class and FCM service |
 | `data/` | Models, `Repository` (HTTP API), `DemoApi` (fictional data), session store, link rules, PDF download, brand colour check |
 | `notify/` | Local class alerts: pure planning (`AlertPlanner`) and WorkManager scheduling (`ClassAlerts`) |
-| `ui/` | Theme and one file per screen: sign-in, tabs, class, PDF viewer, attendance, assessments, feedback, quiz, profile |
+| `ui/` | Theme and one file per screen: sign-in, tabs, class, PDF viewer, attendance, assessments, feedback, quiz, profile, summary-record signing (`SummaryRecordScreen.kt`), Admin and Developer views (`StaffScreens.kt`) |
 
 ## Backend
 
@@ -68,6 +70,12 @@ the server must list this app's signing certificates in `/.well-known/assetlinks
 built from the tenant's settings) for the link to open the app without a chooser. Check with
 `adb shell pm get-app-links com.tertiaryinfotech.ailmstms`.
 
+Release 1.3.0 adds `GET /api/mobile/staff` (admin/developer only: classes by date, the course
+catalogue, and trainers with WhatsApp numbers) and uses the portal's own routes for assessment
+publishing (`/api/assessments/publish-link`), summary-record signing
+(`/api/assessments/summary-record`) and saved signatures (`/api/learner/signature`,
+`/api/trainer/assessor-signature`), each of which checks the class trainer or the enrolled learner.
+
 The server owns push reminder scheduling and rechecks current assignments, enrollments and
 account/session status. A `401` from any route signs the user out.
 
@@ -86,7 +94,7 @@ Includes design, Play submission, automatic release and Feedback/About guidance.
 
 ## Release
 
-Package: `com.tertiaryinfotech.ailmstms` · version 1.2.0 (6) · min SDK 26 · target SDK 36.
+Package: `com.tertiaryinfotech.ailmstms` · version 1.3.0 (7) · min SDK 26 · target SDK 36.
 Store copy and assets are in `store/`; release notes are in `CHANGELOG.md` and
 `distribution/whatsnew/`. See `store/release-status.md` for verified submission state.
 
