@@ -65,7 +65,9 @@ import com.tertiaryinfotech.ailmstms.LmsViewModel
 import com.tertiaryinfotech.ailmstms.Load
 import com.tertiaryinfotech.ailmstms.data.Roles
 import com.tertiaryinfotech.ailmstms.data.SGT
+import com.tertiaryinfotech.ailmstms.data.RunStatus
 import com.tertiaryinfotech.ailmstms.data.StaffClass
+import com.tertiaryinfotech.ailmstms.data.splitRuns
 import com.tertiaryinfotech.ailmstms.data.StaffCourse
 import com.tertiaryinfotech.ailmstms.data.StaffTrainer
 import com.tertiaryinfotech.ailmstms.data.trainerMessage
@@ -239,12 +241,26 @@ private fun SmallLine(icon: androidx.compose.ui.graphics.vector.ImageVector, tex
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StaffClassSheet(vm: LmsViewModel, item: StaffClass, onDone: () -> Unit) {
-    var picking by remember(item.id) { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = onDone, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = MaterialTheme.colorScheme.background) {
-        if (picking) {
-            TrainerWhatsAppPicker(vm, item) { picking = false }
-            return@ModalBottomSheet
+        StaffClassBody(vm, item, onDone)
+    }
+}
+
+/** The class summary inside a sheet; [onBack] shows a Back row (from the course-runs list) instead of nothing. */
+@Composable
+private fun StaffClassBody(vm: LmsViewModel, item: StaffClass, onDone: () -> Unit, onBack: (() -> Unit)? = null) {
+    var picking by remember(item.id) { mutableStateOf(false) }
+    if (picking) {
+        TrainerWhatsAppPicker(vm, item) { picking = false }
+        return
+    }
+    if (onBack != null) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack, modifier = Modifier.testTag("runs-back")) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Back to course runs") }
+            Text("Course runs", fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
         }
+    }
+    run {
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding().testTag("staff-class-sheet"),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -486,14 +502,15 @@ private fun LazyListScope.catalogue(
             item(key = "course-filter") { Segments(CatalogueFilter.entries.map { it.label }, filter.ordinal, "course-filter") { onFilter(CatalogueFilter.entries[it]) } }
             item(key = "course-search") { SearchField(query, "Search title, course code or TSC code", onQuery) }
             item(key = "course-count") { Text("${shown.size} courses", Modifier.padding(horizontal = 4.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            items(shown, key = { "course-" + it.id }) { CourseRow(it, today) }
+            items(shown, key = { "course-" + it.id }) { CourseRow(vm, it, today) }
         }
     }
 }
 
 @Composable
-private fun CourseRow(item: StaffCourse, today: LocalDate) {
+private fun CourseRow(vm: LmsViewModel, item: StaffCourse, today: LocalDate) {
     var open by rememberSaveable(item.id) { mutableStateOf(false) }
+    var runsOpen by remember(item.id) { mutableStateOf(false) }
     val expired = item.expired(today)
     AppCard(Modifier.fillMaxWidth().testTag("course-${item.id}")) {
         Column(Modifier.fillMaxWidth().clickable { open = !open }.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -519,6 +536,121 @@ private fun CourseRow(item: StaffCourse, today: LocalDate) {
                 }
                 if (item.nextRun.isNotBlank()) InfoRow("Next class", longDay(item.nextRun))
             }
+        }
+        // Admin: the course's runs by status; tap for every run.
+        val total = item.totalRuns
+        if (vm.role == Roles.ADMIN && total != null) {
+            HorizontalDivider(color = LocalLmsColors.current.cardBorder)
+            Row(
+                Modifier.fillMaxWidth().clickable(enabled = total > 0, onClickLabel = "Show course runs") { runsOpen = true }
+                    .padding(horizontal = 14.dp, vertical = 10.dp).testTag("course-runs-${item.id}")
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "$total course runs: ${item.confirmedRuns} confirmed, ${item.pendingRuns} pending, ${item.cancelledRuns} cancelled"
+                    },
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("$total course run${if (total == 1) "" else "s"}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                if (total > 0) {
+                    RunCountChip(item.confirmedRuns, RunStatus.CONFIRMED)
+                    RunCountChip(item.pendingRuns, RunStatus.PENDING)
+                    RunCountChip(item.cancelledRuns, RunStatus.CANCELLED)
+                }
+                Spacer(Modifier.weight(1f))
+                if (total > 0) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+    if (runsOpen) CourseRunsSheet(vm, item) { runsOpen = false }
+}
+
+private fun runTone(status: RunStatus): Tone = when (status) {
+    RunStatus.CONFIRMED -> Tone.Good
+    RunStatus.PENDING -> Tone.Warn
+    RunStatus.CANCELLED -> Tone.Bad
+}
+
+/** "8 confirmed" in the status colour. */
+@Composable
+private fun RunCountChip(count: Int, status: RunStatus) {
+    StatusChip("$count ${status.label.lowercase()}", runTone(status))
+}
+
+/**
+ * Admin: every run of one course: a status filter, then upcoming and running runs (soonest first)
+ * and past runs. Each shows its status and, when confirmed, its trainer. Tap for the run's summary.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CourseRunsSheet(vm: LmsViewModel, course: StaffCourse, onDone: () -> Unit) {
+    var filter by remember(course.id) { mutableStateOf<RunStatus?>(null) }
+    var selected by remember(course.id) { mutableStateOf<StaffClass?>(null) }
+    LaunchedEffect(course.id) { vm.loadCourseRuns(course.id) }
+    ModalBottomSheet(onDismissRequest = onDone, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = MaterialTheme.colorScheme.background) {
+        selected?.let { run ->
+            StaffClassBody(vm, run, onDone, onBack = { selected = null })
+            return@ModalBottomSheet
+        }
+        LazyColumn(
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.navigationBarsPadding().testTag("course-runs-sheet"),
+        ) {
+            item(key = "title") {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(course.code.ifBlank { "Course runs" }, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    Text(course.title, fontSize = 19.sp, fontWeight = FontWeight.Bold, lineHeight = 24.sp)
+                }
+            }
+            when (val state = if (vm.courseRunsId == course.id) vm.courseRuns else Load.Loading) {
+                Load.Idle, Load.Loading -> item(key = "loading") { LoadingCard("Loading course runs…") }
+                is Load.Failed -> item(key = "failed") { ErrorCard(state.message) { vm.loadCourseRuns(course.id) } }
+                is Load.Ready -> {
+                    val runs = state.value
+                    val options = listOf<RunStatus?>(null) + RunStatus.entries
+                    item(key = "filter") {
+                        Segments(
+                            options.map { st -> if (st == null) "All (${runs.size})" else "${st.label} (${runs.count { it.statusBucket == st }})" },
+                            options.indexOf(filter), "runs-filter",
+                        ) { filter = options[it] }
+                    }
+                    val shown = runs.filter { filter == null || it.statusBucket == filter }
+                    val (upcoming, past) = splitRuns(shown, LocalDate.now(SGT))
+                    if (shown.isEmpty()) {
+                        item(key = "empty") { EmptyCard(if (runs.isEmpty()) "No course runs" else "No runs with this status", if (runs.isEmpty()) "This course has no runs." else "Choose another status.") }
+                    }
+                    if (upcoming.isNotEmpty()) {
+                        item(key = "upcoming") { SectionLabel("Upcoming and running (${upcoming.size})") }
+                        items(upcoming, key = { "run-" + it.id }) { CourseRunRow(it) { selected = it } }
+                    }
+                    if (past.isNotEmpty()) {
+                        item(key = "past") { SectionLabel("Past (${past.size})") }
+                        items(past, key = { "run-" + it.id }) { CourseRunRow(it) { selected = it } }
+                    }
+                }
+            }
+            item(key = "done") { Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") } }
+        }
+    }
+}
+
+/** One course run: run ID, dates, status; a confirmed run shows its trainer. */
+@Composable
+private fun CourseRunRow(item: StaffClass, onOpen: () -> Unit) {
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val status = item.statusBucket
+    AppCard(Modifier.fillMaxWidth().testTag("course-run-${item.id}"), onClick = onOpen) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(item.runCode.takeIf { it.isNotBlank() }?.let { "Run $it" } ?: "Run", Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                StatusChip(status.label, runTone(status))
+            }
+            SmallLine(Icons.Default.DateRange, longRange(item.startDate, item.endDate))
+            if (status == RunStatus.CONFIRMED) {
+                SmallLine(
+                    Icons.Default.Person, if (item.trainers.isEmpty()) "No trainer assigned" else item.trainers.joinToString(", "),
+                    if (item.trainers.isEmpty()) LocalLmsColors.current.warning else secondary,
+                )
+            }
+            Text(listOf("${item.learners} learner${if (item.learners == 1) "" else "s"}", item.format).filter { it.isNotBlank() }.joinToString("  ·  "), fontSize = 13.sp, color = secondary)
         }
     }
 }

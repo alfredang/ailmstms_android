@@ -73,8 +73,8 @@ import java.util.Locale
 
 /**
  * Top of My Classes, in the TIA house layout: a "Welcome back" card with the name, the role and
- * a My Profile link (the whole card opens Account), then, for the owner account only, a
- * "View as" row to switch role.
+ * a My Profile link (the whole card opens Account), then, for an email that holds more than one
+ * role, the "Switch role" row.
  */
 @Composable
 fun HomeHeader(vm: LmsViewModel, onProfile: () -> Unit) {
@@ -112,8 +112,9 @@ fun HomeHeader(vm: LmsViewModel, onProfile: () -> Unit) {
 }
 
 /**
- * The owner's "View as" switcher: Learner, Trainer, Developer or Admin. Shown on the home tab and
- * on the Account page. It changes what this device shows, never what the server allows.
+ * "Switch role": the roles this email holds (Learner, Trainer, Developer; Admin after an admin
+ * sign-in; all four for the owner). Shown on the home tab and on the Account page. It changes
+ * what this device shows, never what the server allows.
  */
 @Composable
 fun ViewAsMenu(vm: LmsViewModel, boxed: Boolean) {
@@ -131,7 +132,7 @@ fun ViewAsMenu(vm: LmsViewModel, boxed: Boolean) {
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(EyeIcon, null, Modifier.size(22.dp), tint = accent)
-            Text("View as", Modifier.weight(1f), fontSize = 17.sp, color = secondary)
+            Text("Switch role", Modifier.weight(1f), fontSize = 17.sp, color = secondary)
             Text(Roles.label(vm.role), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
             Icon(UnfoldIcon, null, Modifier.size(18.dp), tint = secondary)
         }

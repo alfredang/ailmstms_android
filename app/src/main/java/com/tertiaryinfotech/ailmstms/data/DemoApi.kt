@@ -345,11 +345,25 @@ class DemoApi(private val today: () -> LocalDate = { LocalDate.now(SGT) }, priva
         delay(pause)
         val day = today()
         return listOf(
-            StaffCourse("c1", "Building AI Applications", "DEMO · AI-101", "WSQ", "", "Artificial Intelligence Application", "DEMO-TSC-3026-1.1", 14.0, 2.0, day.plusYears(1).toString(), 2, day.toString(), day.minusYears(1).toString()),
+            StaffCourse("c1", "Building AI Applications", "DEMO · AI-101", "WSQ", "", "Artificial Intelligence Application", "DEMO-TSC-3026-1.1", 14.0, 2.0, day.plusYears(1).toString(), 2, day.toString(), day.minusYears(1).toString(), 4, 2, 1, 1),
             StaffCourse("c2", "Data Analytics Essentials", "DEMO · DATA-101", "WSQ", "", "Data Analytics", "DEMO-TSC-2011-1.1", 7.0, 1.0, day.plusDays(45).toString(), 1, day.toString(), day.minusYears(2).toString()),
             StaffCourse("c3", "Prompt Engineering Workshop", "DEMO · PE-201", "Non-WSQ", "", "", "", 7.0, 0.0, "", 1, day.plusDays(3).toString()),
             StaffCourse("c4", "Legacy Office Skills (Expired)", "DEMO · OF-001", "WSQ", "", "Office Productivity", "DEMO-TSC-1001-1.1", 7.0, 1.0, day.minusMonths(3).toString(), 0, "", day.minusYears(2).toString()),
         )
+    }
+
+    override suspend fun staffRuns(courseId: String): List<StaffClass> {
+        delay(pause)
+        val day = today()
+        fun d(n: Long) = day.plusDays(n).toString()
+        val title = "Building AI Applications"
+        val code = "DEMO · AI-101"
+        return listOf(
+            StaffClass("r4", "100006", title, code, d(20), d(21), "Physical", "Pending", false, emptyList(), 3, VENUE),
+            StaffClass("r3", "100005", title, code, d(12), d(13), "Physical", "Confirmed", false, listOf("Alex Tan"), 14, VENUE),
+            StaffClass("r2", "100001", title, code, d(0), d(1), "Hybrid", "Confirmed", true, emptyList(), 18, VENUE),
+            StaffClass("r1", "099990", title, code, d(-30), d(-29), "Online", "Cancelled", false, emptyList(), 0, ""),
+        ).filter { courseId == "c1" }
     }
 
     override suspend fun staffTrainers(): List<StaffTrainer> {

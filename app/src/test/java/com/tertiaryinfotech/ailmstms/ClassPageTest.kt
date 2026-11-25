@@ -146,7 +146,12 @@ class ClassPageTest {
     @Test
     fun rolesForTheOwnerAdminAndEveryoneElse() {
         assertEquals(listOf("learner", "trainer", "developer", "admin"), Roles.available(Roles.OWNER_EMAIL, listOf("learner"), "learner"))
-        assertEquals(listOf("trainer"), Roles.available("someone@example.com", listOf("learner", "trainer"), "trainer"))
+        // An email with several roles switches between them; Admin only after an admin sign-in.
+        assertEquals(listOf("learner", "trainer"), Roles.available("someone@example.com", listOf("learner", "trainer"), "trainer"))
+        assertEquals(listOf("learner", "trainer", "developer", "admin"),
+            Roles.available("someone@example.com", listOf("learner", "trainer", "developer"), "admin", adminSession = true))
+        assertEquals(listOf("learner"), Roles.available("someone@example.com", listOf("learner"), "learner"))
+        assertEquals("developer", Roles.restore("a@b.c", "developer", "learner", false, listOf("learner", "developer")))
         assertEquals("Admin", Roles.label("admin"))
         assertTrue(Roles.isStaff("developer") && Roles.isStaff("admin") && !Roles.isStaff("trainer"))
         // The owner keeps the role last viewed as; an admin sign-in keeps Admin; others fall back to what they hold.

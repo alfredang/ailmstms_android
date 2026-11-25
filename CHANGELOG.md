@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] — 2026-11-25 · versionCode 9
+
+### Added
+- Admin: every course shows its course runs with confirmed, pending and cancelled counts; open a course to see all its runs, filter by status, and see the trainer of each confirmed run.
+- Switch role: one email with several roles (Learner, Trainer, Developer, and Admin after the admin sign-in) switches between them; the choice is kept on the device.
+
 ## [1.3.1] — 2026-11-23 · versionCode 8
 
 ### Added

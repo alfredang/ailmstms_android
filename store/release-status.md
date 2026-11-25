@@ -1,5 +1,12 @@
 # TIA TMS Android release status
 
+## Production 1.4.0 (9) — 25 November 2026
+
+- Admin course runs (every run of a course with Confirmed / Pending / Cancelled and the trainer of each confirmed run) and Switch role for one email with several roles; see `CHANGELOG.md`. Server: AI-LMS-TMS 458c7072 (`/api/mobile/staff?view=runs` answers 401 unauthenticated in production).
+- Committed through the Android Publisher API with the shared service account (edit 00222978434971972489): bundle versionCode 9 (SHA-256 `6781efc136342f37…`), production release "1.4.0 (9)" status completed, en-US notes from `distribution/whatsnew/`. Validated before commit.
+- Read-back after commit: production = 1.4.0 (9) completed; alpha unchanged at 1.0.3 (4). Google review of the update is pending. Evidence: `store/qa-1.4.0-publish.txt`.
+- Ownership: proved through the API this session (the service account is listed on corporate developer 6132721113732535566 and gets 403 on the personal account).
+- Verified: 100 unit tests (0 failures), lint 0 errors (29 warnings). Not run: `AppFlowTest` on an emulator.
 
 ## Production 1.3.1 (8) — 23 November 2026
 

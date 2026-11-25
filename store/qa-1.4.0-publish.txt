@@ -1,0 +1,8 @@
+service account: codex-play-publisher@kael-projects.iam.gserviceaccount.com
+edit 00222978434971972489
+before {'production': [('1.3.1 (8)', 'completed', ['8'])], 'beta': [], 'alpha': [('1.0.3 (4)', 'completed', ['4'])], 'internal': []}
+aab sha256 6781efc136342f37
+bundle 9
+validate ok
+commit ok
+readback {'production': [('1.4.0 (9)', 'completed', ['9'])], 'beta': [], 'alpha': [('1.0.3 (4)', 'completed', ['4'])], 'internal': []}

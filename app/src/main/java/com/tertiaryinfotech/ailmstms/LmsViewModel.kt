@@ -146,9 +146,9 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     /** The "Sign in as" choice on the sign-in screen. It becomes [role] at sign-in and returns to Learner at sign-out. */
     var loginRole by mutableStateOf(Roles.LEARNER); private set
 
-    /** The roles offered in the "View as" switcher: more than one only for the owner account. */
+    /** The roles offered in "Switch role": every role this account holds (Admin after an admin sign-in). */
     val availableRoles: List<String>
-        get() = if (isDemo) listOf(role) else Roles.available(profile?.email, profile?.roles.orEmpty(), role)
+        get() = if (isDemo) listOf(role) else Roles.available(profile?.email, profile?.roles.orEmpty(), role, repo.store.adminSession)
     val canSwitchRole: Boolean get() = availableRoles.size > 1
 
     /** Showing a back-office role (Developer or Admin) rather than Learner or Trainer. */
@@ -195,6 +195,9 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     // Admin and Developer pages (GET /api/mobile/staff). Idle until first shown.
     var adminClasses by mutableStateOf<Load<List<StaffClass>>>(Load.Idle); private set
     var catalogue by mutableStateOf<Load<List<StaffCourse>>>(Load.Idle); private set
+    /** Admin: the runs of the course opened from the catalogue ([courseRunsId]). */
+    var courseRuns by mutableStateOf<Load<List<StaffClass>>>(Load.Idle); private set
+    var courseRunsId by mutableStateOf<String?>(null); private set
     /** Admin: trainers to WhatsApp about a class. Loaded when the picker first opens. */
     var staffTrainers by mutableStateOf<Load<List<StaffTrainer>>>(Load.Idle); private set
     var calendarClasses by mutableStateOf<List<StaffClass>>(emptyList()); private set
@@ -536,7 +539,7 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
         (stack.lastOrNull() as? Screen.ClassRoom)?.let { loadClass(it.id, quiet = true) }
     }
 
-    /** The owner account's "View as" switcher. Every other account keeps the role it signed in with. */
+    /** "Switch role": shows that role's classes, calendar and tabs. Kept on this device until the next sign-in. */
     fun switchRole(value: String) = action {
         if (value !in availableRoles || value == role) return@action
         if (!isDemo) repo.store.role = value
@@ -555,6 +558,8 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
     private fun resetStaff() {
         adminClasses = Load.Idle
         catalogue = Load.Idle
+        courseRuns = Load.Idle
+        courseRunsId = null
         staffTrainers = Load.Idle
         calendarJob?.cancel()
         pendingMonth = null
@@ -595,6 +600,25 @@ class LmsViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: Exception) {
                 val message = failure(e)
                 if (profile != null && catalogue !is Load.Ready) catalogue = Load.Failed(message)
+            }
+        }
+    }
+
+    /** Admin: every run of one course, with its status and trainers. */
+    fun loadCourseRuns(courseId: String) {
+        if (role != Roles.ADMIN) return
+        if (courseRunsId != courseId) courseRuns = Load.Idle
+        courseRunsId = courseId
+        if (courseRuns !is Load.Ready) courseRuns = Load.Loading
+        viewModelScope.launch {
+            try {
+                val list = api.staffRuns(courseId)
+                if (role == Roles.ADMIN && profile != null && courseRunsId == courseId) courseRuns = Load.Ready(list)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = failure(e)
+                if (profile != null && courseRunsId == courseId && courseRuns !is Load.Ready) courseRuns = Load.Failed(message)
             }
         }
     }

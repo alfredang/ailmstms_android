@@ -16,10 +16,10 @@ Kotlin and Jetpack Compose companion for Tertiary Infotech Academy learners and 
 - Assessment Summary Record e-signing: learners sign as candidate, trainers as assessor (one by one or all at once), with a finger-drawn signature saved once.
 - Profile editing and a light, dark or system theme saved to the profile.
 - Push reminders three days and one day before each class, plus local alerts 24 hours before and at 08:00 on the day.
-- Learner/trainer switching where both roles are assigned; an admin Google sign-in shows Admin, and the owner account can view as Learner, Trainer, Developer or Admin.
+- Switch role for one email with several roles (Learner, Trainer, Developer); the admin Google sign-in (allow-listed academy admins) adds Admin; the owner account can switch between all four.
 - Trainers also post announcements with a photo or file, grade from a roster (WA / PP ticks, TRAQOM tick, assessor signature on submissions) and hold ACLP, DDDPL and TAEPP badges with domain expertise and skill tags.
 - Certificates to view and download; a learner Support tab (feedback, email, tel, WhatsApp, address); class status on every class card.
-- Admin (read-only): Current and Upcoming classes, the academy calendar, the course catalogue, and WhatsApp a trainer about a class. Developer: the course catalogue. No finance UI; class status and trainer assignment stay on the website.
+- Admin (read-only): Current and Upcoming classes, the academy calendar, the course catalogue with every course's runs (Confirmed, Pending or Cancelled, with the trainer of each confirmed run), and WhatsApp a trainer about a class. Developer: the course catalogue. No finance UI; class status and trainer assignment stay on the website.
 - Clearly labelled fictional demo covering every screen, with no network calls.
 
 ## App preview
@@ -96,7 +96,7 @@ Includes design, Play submission, automatic release and Feedback/About guidance.
 
 ## Release
 
-Package: `com.tertiaryinfotech.ailmstms` · version 1.3.1 (8) · min SDK 26 · target SDK 36.
+Package: `com.tertiaryinfotech.ailmstms` · version 1.4.0 (9) · min SDK 26 · target SDK 36.
 Store copy and assets are in `store/`; release notes are in `CHANGELOG.md` and
 `distribution/whatsnew/`. See `store/release-status.md` for verified submission state.
 

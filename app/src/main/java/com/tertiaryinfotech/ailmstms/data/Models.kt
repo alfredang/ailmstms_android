@@ -87,17 +87,28 @@ object Roles {
         else -> resolve(stored, held)
     }
 
-    /** The roles this account may view as right now: just [active], except for the owner account, which sees all. */
-    fun available(email: String?, @Suppress("UNUSED_PARAMETER") held: List<String>, active: String): List<String> =
-        if (isOwner(email)) ALL else listOf(active)
+    /**
+     * The roles offered in "Switch role": every role this account holds (Learner, Trainer, Developer),
+     * plus Admin after an admin sign-in; all four for the owner. Always includes [active].
+     */
+    fun available(email: String?, held: List<String>, active: String, adminSession: Boolean = false): List<String> {
+        if (isOwner(email)) return ALL
+        val roles = ALL.filter { it in held || (it == ADMIN && adminSession) }
+        return if (active in roles) roles else listOf(active)
+    }
 }
 
-/** The signed-in identity: only the classroom roles ([Roles.CLASSROOM]) are kept; Admin comes from the admin sign-in. */
+/**
+ * The signed-in identity. Keeps Learner, Trainer and Developer when the account holds a classroom role
+ * ([Roles.CLASSROOM]), so one email can switch between them; Admin comes from the admin sign-in.
+ */
 data class Profile(val id: String, val name: String, val email: String, val roles: List<String>) {
     companion object {
+        private val APP_ROLES = listOf(Roles.LEARNER, Roles.TRAINER, Roles.DEVELOPER)
+
         fun parse(o: JSONObject): Profile {
-            val roles = o.array("roles").let { a -> (0 until a.length()).map { a.optString(it) } }
-                .filter { it in Roles.CLASSROOM }
+            val held = o.array("roles").let { a -> (0 until a.length()).map { a.optString(it).lowercase() } }
+            val roles = if (held.none { it in Roles.CLASSROOM }) emptyList() else APP_ROLES.filter { it in held }
             return Profile(o.text("id"), o.text("fullName"), o.text("email"), roles)
         }
     }
@@ -584,6 +595,17 @@ data class StaffClass(
     val end: LocalDate? get() = parseDay(endDate.ifBlank { startDate }) ?: start
     val cancelled: Boolean get() = classStatus.trim().lowercase().startsWith("cancel")
 
+    /** Confirmed, Cancelled, or Pending (anything else, such as Unconfirmed or blank). */
+    val statusBucket: RunStatus
+        get() {
+            val s = classStatus.trim().lowercase()
+            return when {
+                s == "confirmed" -> RunStatus.CONFIRMED
+                s.startsWith("cancel") -> RunStatus.CANCELLED
+                else -> RunStatus.PENDING
+            }
+        }
+
     fun covers(day: LocalDate): Boolean {
         val a = start ?: return false
         val b = end ?: a
@@ -604,6 +626,20 @@ data class StaffClass(
 
         fun parseAll(o: JSONObject): List<StaffClass> = o.array("classes").objects().map(::parse)
     }
+}
+
+/** A course run's status as the admin course-runs list groups it. */
+enum class RunStatus(val label: String) { CONFIRMED("Confirmed"), PENDING("Pending"), CANCELLED("Cancelled") }
+
+/**
+ * A course's runs split for the admin list: upcoming and running ones (soonest first), then past
+ * ones (newest first). [runs] arrive newest first, as GET /api/mobile/staff?view=runs sends them.
+ */
+fun splitRuns(runs: List<StaffClass>, today: LocalDate): Pair<List<StaffClass>, List<StaffClass>> {
+    fun last(c: StaffClass) = c.end ?: c.start
+    val upcoming = runs.filter { last(it)?.isBefore(today) == false }.sortedBy { it.start ?: LocalDate.MAX }
+    val past = runs.filter { last(it)?.isBefore(today) != false }
+    return upcoming to past
 }
 
 /** A trainer the admin can WhatsApp about a class (GET /api/mobile/staff?view=trainers). [phone] is E.164 or null. */
@@ -662,6 +698,11 @@ data class StaffCourse(
     val upcomingRuns: Int,
     val nextRun: String,
     val fundingValidityStart: String = "",
+    /** Run counts by status (null from a server that does not send them). */
+    val totalRuns: Int? = null,
+    val confirmedRuns: Int = 0,
+    val pendingRuns: Int = 0,
+    val cancelledRuns: Int = 0,
 ) {
     val fundingEnd: LocalDate? get() = parseDay(fundingValidityEnd)
 
@@ -691,6 +732,8 @@ data class StaffCourse(
             o.text("id"), o.text("title"), o.text("code"), o.text("courseType"), o.text("status"), o.text("tscTitle"), o.text("tscCode"),
             o.number("trainingHours"), o.number("assessmentHours"), o.text("fundingValidityEnd"), o.optInt("upcomingRuns"), o.text("nextRun"),
             o.text("fundingValidityStart"),
+            if (o.has("totalRuns") && !o.isNull("totalRuns")) o.optInt("totalRuns") else null,
+            o.optInt("confirmedRuns"), o.optInt("pendingRuns"), o.optInt("cancelledRuns"),
         )
 
         fun parseAll(o: JSONObject): List<StaffCourse> = o.array("courses").objects().map(::parse)

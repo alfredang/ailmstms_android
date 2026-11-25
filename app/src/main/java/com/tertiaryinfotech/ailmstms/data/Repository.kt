@@ -301,6 +301,9 @@ class Repository(val store: SessionState, private val base: String = BuildConfig
     override suspend fun staffCourses(): List<StaffCourse> =
         StaffCourse.parseAll(request("/api/mobile/staff", query = listOf("view" to "courses")))
 
+    override suspend fun staffRuns(courseId: String): List<StaffClass> =
+        StaffClass.parseAll(request("/api/mobile/staff", query = listOf("view" to "runs", "courseId" to courseId)))
+
     override suspend fun staffTrainers(): List<StaffTrainer> =
         StaffTrainer.parseAll(request("/api/mobile/staff", query = listOf("view" to "trainers")))
 

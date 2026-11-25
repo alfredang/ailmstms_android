@@ -58,7 +58,7 @@ class LinksTest {
         // A session from before the sign-in choice keeps the trainer view when the account teaches.
         assertEquals("trainer", Roles.legacy(listOf("learner", "trainer")))
         assertEquals("learner", Roles.legacy(listOf("learner")))
-        assertEquals(listOf("trainer"), Roles.available("someone@example.com", listOf("learner", "trainer"), "trainer"))
+        assertEquals(listOf("learner", "trainer"), Roles.available("someone@example.com", listOf("learner", "trainer"), "trainer"))
         // The owner account can view the app as every role, as on iOS (the server still checks each request).
         assertEquals(listOf("learner", "trainer", "developer", "admin"), Roles.available(" AngCH@tertiaryinfotech.com", listOf("trainer", "learner"), "trainer"))
         assertEquals(listOf("learner", "trainer", "developer", "admin"), Roles.available("angch@tertiaryinfotech.com", listOf("learner"), "learner"))

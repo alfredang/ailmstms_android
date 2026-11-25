@@ -75,6 +75,9 @@ interface LmsApi {
     /** Admin and Developer: the course catalogue. */
     suspend fun staffCourses(): List<StaffCourse>
 
+    /** Admin: every run of one course, newest first. */
+    suspend fun staffRuns(courseId: String): List<StaffClass>
+
     /** Admin: every trainer with a WhatsApp number where the profile has one. */
     suspend fun staffTrainers(): List<StaffTrainer>
 

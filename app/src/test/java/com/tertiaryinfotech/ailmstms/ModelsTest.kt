@@ -25,6 +25,27 @@ class ModelsTest {
     fun roleFilterRejectsAdministrativeAccounts() {
         assertEquals(emptyList<String>(), Profile.parse(JSONObject("""{"id":"1","roles":["admin","finance","developer"]}""")).roles)
         assertEquals(listOf("trainer"), Profile.parse(JSONObject("""{"roles":["admin","trainer"]}""")).roles)
+        // Developer is kept beside a classroom role, so the account can switch to it.
+        assertEquals(listOf("learner", "trainer", "developer"), Profile.parse(JSONObject("""{"roles":["developer","Trainer","learner","admin"]}""")).roles)
+    }
+
+    @Test
+    fun courseRunsGroupByStatusAndDate() {
+        val today = java.time.LocalDate.of(2026, 11, 25)
+        fun run(id: String, start: String, end: String, status: String) =
+            com.tertiaryinfotech.ailmstms.data.StaffClass(id, id, "T", "C", start, end, "Physical", status, false, emptyList(), 0, "")
+        val runs = listOf(
+            run("a", "2027-01-10", "2027-01-11", "Pending"), run("b", "2026-12-01", "2026-12-01", "Confirmed"),
+            run("c", "2026-11-24", "2026-11-26", "Unconfirmed"), run("d", "2026-10-01", "2026-10-02", "Cancelled"),
+        )
+        assertEquals(listOf(com.tertiaryinfotech.ailmstms.data.RunStatus.PENDING, com.tertiaryinfotech.ailmstms.data.RunStatus.CONFIRMED,
+            com.tertiaryinfotech.ailmstms.data.RunStatus.PENDING, com.tertiaryinfotech.ailmstms.data.RunStatus.CANCELLED), runs.map { it.statusBucket })
+        val (upcoming, past) = com.tertiaryinfotech.ailmstms.data.splitRuns(runs, today)
+        assertEquals(listOf("c", "b", "a"), upcoming.map { it.id })
+        assertEquals(listOf("d"), past.map { it.id })
+        val course = com.tertiaryinfotech.ailmstms.data.StaffCourse.parse(JSONObject("""{"id":"x","totalRuns":5,"confirmedRuns":3,"pendingRuns":1,"cancelledRuns":1}"""))
+        assertEquals(5, course.totalRuns); assertEquals(3, course.confirmedRuns)
+        assertEquals(null, com.tertiaryinfotech.ailmstms.data.StaffCourse.parse(JSONObject("""{"id":"y"}""")).totalRuns)
     }
 
     @Test

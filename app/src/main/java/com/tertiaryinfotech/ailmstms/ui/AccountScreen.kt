@@ -112,7 +112,10 @@ fun AccountScreen(vm: LmsViewModel, onNotifications: (Boolean) -> Unit) {
 
         if (vm.canSwitchRole) {
             InfoCard(padding = 0.dp) { ViewAsMenu(vm, boxed = false) }
-            Footnote("Owner account only: see the app as each role. The server still checks every request.")
+            Footnote(
+                if (Roles.isOwner(vm.profile?.email)) "Owner account: see the app as each role. The server still checks every request."
+                else "Your email has more than one role. Switch to see that role's classes and pages."
+            )
         }
 
         if (vm.role == Roles.TRAINER) {
